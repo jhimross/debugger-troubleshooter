@@ -4,7 +4,7 @@ Tags: debug, troubleshoot, php info, developer
 Requires at least: 5.0
 Requires PHP: 7.4
 Tested up to: 6.9
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: GPL-2.0+
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 Donate link: https://paypal.me/jhimross28
@@ -91,6 +91,12 @@ A: The plugin uses the `plugins_loaded` hook to define the `WP_DEBUG` constants 
 
 == Changelog ==
 
+= 1.4.1 - 2026-05-11 =
+* **Feature:** Added "SMTP / Mail Debugger" to test and verify site mail configuration.
+* **Feature:** Captures detailed WP_Error data and PHP environment diagnostics upon mail delivery failure.
+* **Enhancement:** Improved AJAX feedback loops and visual status indicators in the dashboard.
+* **Fix:** Resolved minor UI layout issues in the Site Information cards.
+
 = 1.4.0 - 2026-03-19 =
 * **Security Fix (Critical):** Resolved a privilege escalation vulnerability where unauthenticated users could bypass authentication via the User Simulation feature.
 * **Security Fix (High):** Patched an authorization bypass in the Troubleshooting Mode configuration. State is now securely validated against database records using cryptographic tokens.
@@ -137,6 +143,9 @@ A: The plugin uses the `plugins_loaded` hook to define the `WP_DEBUG` constants 
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.4.1 =
+This update adds the SMTP / Mail Debugger feature to help diagnose email delivery issues.
 
 = 1.4.0 =
 CRITICAL SECURITY UPDATE. All users must update immediately to patch a severe privilege escalation vulnerability where unauthenticated users could impersonate administrators. 

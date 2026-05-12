@@ -3,7 +3,7 @@
  * Plugin Name:       Debugger & Troubleshooter
  * Plugin URI:        https://wordpress.org/plugins/debugger-troubleshooter
  * Description:       A WordPress plugin for debugging and troubleshooting, allowing simulated plugin deactivation and theme switching without affecting the live site.
- * Version:           1.4.0
+ * Version:           1.4.1
  * Author:            Jhimross
  * Author URI:        https://profiles.wordpress.org/jhimross
  * License:           GPL-2.0+
@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) {
 /**
  * Define plugin constants.
  */
-define('DBGTBL_VERSION', '1.4.0');
+define('DBGTBL_VERSION', '1.4.1');
 define('DBGTBL_DIR', plugin_dir_path(__FILE__));
 define('DBGTBL_URL', plugin_dir_url(__FILE__));
 define('DBGTBL_BASENAME', plugin_basename(__FILE__));
@@ -70,6 +70,7 @@ class Debug_Troubleshooter
 		add_action('wp_ajax_debug_troubleshoot_toggle_debug_mode', array($this, 'ajax_toggle_debug_mode'));
 		add_action('wp_ajax_debug_troubleshoot_clear_debug_log', array($this, 'ajax_clear_debug_log'));
 		add_action('wp_ajax_debug_troubleshoot_toggle_simulate_user', array($this, 'ajax_toggle_simulate_user'));
+		add_action('wp_ajax_debug_troubleshoot_send_test_email', array($this, 'ajax_send_test_email'));
 
 		// Core troubleshooting logic (very early hook).
 		add_action('plugins_loaded', array($this, 'init_troubleshooting_mode'), 0);
@@ -279,6 +280,34 @@ class Debug_Troubleshooter
 							</div>
 							<textarea id="debug-log-viewer" readonly class="large-text"
 								rows="15"><?php echo esc_textarea($this->get_debug_log_content()); ?></textarea>
+						</div>
+					</div>
+				</div>
+
+				<div class="debug-troubleshooter-section standalone-section full-width-section">
+					<div class="section-header">
+						<h2><?php esc_html_e('SMTP / Mail Debugger', 'debugger-troubleshooter'); ?></h2>
+					</div>
+					<div class="section-content">
+						<p class="description">
+							<?php esc_html_e('Send a test email to verify your site\'s mail configuration. If the email fails, the plugin will attempt to capture the exact error message.', 'debugger-troubleshooter'); ?>
+						</p>
+						<div class="mail-debugger-form mt-4">
+							<div class="flex flex-col md:flex-row gap-4 items-end">
+								<div class="flex-1">
+									<label for="test-email-recipient" class="block mb-2 font-medium"><?php esc_html_e('Recipient Email Address', 'debugger-troubleshooter'); ?></label>
+									<input type="email" id="test-email-recipient" class="regular-text w-full" 
+										placeholder="<?php echo esc_attr(get_option('admin_email')); ?>" 
+										value="<?php echo esc_attr(get_option('admin_email')); ?>">
+								</div>
+								<button id="send-test-email" class="button button-primary button-large">
+									<?php esc_html_e('Send Test Email', 'debugger-troubleshooter'); ?>
+								</button>
+							</div>
+							<div id="mail-debug-result" class="hidden mt-4 p-4 rounded-md border">
+								<h4 class="mt-0 font-bold" id="mail-debug-result-title"></h4>
+								<div id="mail-debug-result-message" class="text-sm font-mono whitespace-pre-wrap"></div>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -998,6 +1027,89 @@ class Debug_Troubleshooter
 			}
 
 			wp_send_json_success(array('message' => __('User simulation deactivated.', 'debugger-troubleshooter')));
+		}
+	}
+
+
+	/**
+	 * Stores the last mail error captured via wp_mail_failed hook.
+	 *
+	 * @var WP_Error|null
+	 */
+	private $last_mail_error = null;
+
+	/**
+	 * Captures mail failures.
+	 *
+	 * @param WP_Error $error The error object.
+	 */
+	public function capture_mail_failure($error)
+	{
+		$this->last_mail_error = $error;
+	}
+
+	/**
+	 * AJAX handler to send a test email.
+	 */
+	public function ajax_send_test_email()
+	{
+		check_ajax_referer('debug_troubleshoot_nonce', 'nonce');
+
+		if (!current_user_can('manage_options')) {
+			wp_send_json_error(array('message' => __('Permission denied.', 'debugger-troubleshooter')));
+		}
+
+		$to = isset($_POST['to']) ? sanitize_email(wp_unslash($_POST['to'])) : '';
+
+		if (!is_email($to)) {
+			wp_send_json_error(array('message' => __('Invalid email address.', 'debugger-troubleshooter')));
+		}
+
+		$subject = sprintf(__('Test Email from %s', 'debugger-troubleshooter'), get_bloginfo('name'));
+		$message = sprintf(
+			__("This is a test email sent from the Debugger & Troubleshooter plugin to verify mail delivery.\n\nSite: %s\nTime: %s\nSent by: %s\n\nIf you received this, your site's mail configuration is working correctly.", 'debugger-troubleshooter'),
+			home_url(),
+			current_time('mysql'),
+			wp_get_current_user()->display_name
+		);
+		
+		$headers = array('Content-Type: text/plain; charset=UTF-8');
+
+		// Capture failure if it happens
+		add_action('wp_mail_failed', array($this, 'capture_mail_failure'));
+
+		$sent = wp_mail($to, $subject, $message, $headers);
+
+		remove_action('wp_mail_failed', array($this, 'capture_mail_failure'));
+
+		if ($sent) {
+			wp_send_json_success(array(
+				'message' => __('Test email sent successfully! Please check your inbox (and spam folder).', 'debugger-troubleshooter')
+			));
+		} else {
+			$error_msg = __('The email could not be sent.', 'debugger-troubleshooter');
+			$debug_info = '';
+
+			if ($this->last_mail_error && is_wp_error($this->last_mail_error)) {
+				$error_msg = $this->last_mail_error->get_error_message();
+				$error_data = $this->last_mail_error->get_error_data();
+				if (!empty($error_data)) {
+					$debug_info = print_r($error_data, true);
+				}
+			} else {
+				// Fallback: check for common issues
+				if (!extension_loaded('openssl')) {
+					$debug_info .= "\n- OpenSSL extension is not loaded.";
+				}
+				if (ini_get('sendmail_path') === false) {
+					$debug_info .= "\n- sendmail_path is not configured in php.ini.";
+				}
+			}
+
+			wp_send_json_error(array(
+				'message' => $error_msg,
+				'debug' => $debug_info
+			));
 		}
 	}
 

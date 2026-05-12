@@ -120,7 +120,12 @@ jQuery(document).ready(function ($) {
         $('#debug-troubleshoot-confirm-modal').addClass('hidden');
 
         $.ajax({
-            // ... existing ajax code ...
+            url: debugTroubleshoot.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'debug_troubleshoot_clear_debug_log',
+                nonce: debugTroubleshoot.nonce
+            },
             success: function (response) {
                 if (response.success) {
                     $('#debug-log-viewer').val('Debug log cleared successfully.');
@@ -351,6 +356,63 @@ jQuery(document).ready(function ($) {
             error: function () {
                 showAlert(debugTroubleshoot.alert_title_error, 'An AJAX error occurred.', 'error');
                 $button.prop('disabled', false).text('Simulate User');
+            }
+        });
+    });
+
+    // Handle Send Test Email
+    $('#send-test-email').on('click', function () {
+        var $button = $(this);
+        var recipient = $('#test-email-recipient').val();
+        var $resultBox = $('#mail-debug-result');
+        var $resultTitle = $('#mail-debug-result-title');
+        var $resultMessage = $('#mail-debug-result-message');
+
+        if (!recipient) {
+            showAlert(debugTroubleshoot.alert_title_error, 'Please enter a recipient email address.', 'error');
+            return;
+        }
+
+        $button.prop('disabled', true).text('Sending...');
+        $resultBox.addClass('hidden').removeClass('bg-green-50 bg-red-50 border-green-200 border-red-200');
+
+        $.ajax({
+            url: debugTroubleshoot.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'debug_troubleshoot_send_test_email',
+                nonce: debugTroubleshoot.nonce,
+                to: recipient
+            },
+            success: function (response) {
+                $resultBox.removeClass('hidden');
+                if (response.success) {
+                    $resultTitle.text('Success').css('color', '#0f5132');
+                    $resultMessage.text(response.data.message);
+                    $resultBox.addClass('bg-green-50 border-green-200').css({
+                        'background-color': '#f0fdf4',
+                        'border-color': '#bbf7d0',
+                        'color': '#166534'
+                    });
+                } else {
+                    $resultTitle.text('Failed').css('color', '#842029');
+                    var msg = response.data.message;
+                    if (response.data.debug) {
+                        msg += '\n\nDebug Info:\n' + response.data.debug;
+                    }
+                    $resultMessage.text(msg);
+                    $resultBox.addClass('bg-red-50 border-red-200').css({
+                        'background-color': '#fef2f2',
+                        'border-color': '#fecaca',
+                        'color': '#991b1b'
+                    });
+                }
+            },
+            error: function () {
+                showAlert(debugTroubleshoot.alert_title_error, 'An AJAX error occurred while sending the email.', 'error');
+            },
+            complete: function () {
+                $button.prop('disabled', false).text('Send Test Email');
             }
         });
     });
