@@ -3,7 +3,7 @@
  * Plugin Name:       Debugger & Troubleshooter
  * Plugin URI:        https://wordpress.org/plugins/debugger-troubleshooter
  * Description:       A WordPress plugin for debugging and troubleshooting, allowing simulated plugin deactivation and theme switching without affecting the live site.
- * Version:           1.4.1
+ * Version:           1.4.2
  * Author:            Jhimross
  * Author URI:        https://profiles.wordpress.org/jhimross
  * License:           GPL-2.0+
@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) {
 /**
  * Define plugin constants.
  */
-define('DBGTBL_VERSION', '1.4.1');
+define('DBGTBL_VERSION', '1.4.2');
 define('DBGTBL_DIR', plugin_dir_path(__FILE__));
 define('DBGTBL_URL', plugin_dir_url(__FILE__));
 define('DBGTBL_BASENAME', plugin_basename(__FILE__));
