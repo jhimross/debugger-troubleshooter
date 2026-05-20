@@ -91,7 +91,7 @@ A: The plugin uses the `plugins_loaded` hook to define the `WP_DEBUG` constants 
 
 == Changelog ==
 
-= 1.4.1 - 2026-05-11 =
+= 1.4.1 - 2026-05-20 =
 * **Enhancement:** Tested up to WordPress 7.0.
 * **Feature:** Added "SMTP / Mail Debugger" to test and verify site mail configuration.
 * **Feature:** Captures detailed WP_Error data and PHP environment diagnostics upon mail delivery failure.
