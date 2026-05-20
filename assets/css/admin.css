@@ -109,7 +109,7 @@
 }
 
 .hidden {
-    display: none !important;
+    display: none;
 }
 
 .mt-4 {
@@ -385,9 +385,7 @@
     padding: 15px;
 }
 
-.card-collapsible-content.hidden {
-    display: none;
-}
+
 
 .debug-troubleshooter-card:not(.collapsible) {
     padding: 15px;

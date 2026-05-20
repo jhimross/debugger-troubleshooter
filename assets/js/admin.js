@@ -221,6 +221,11 @@ jQuery(document).ready(function ($) {
         var $header = $(this);
         var $content = $header.siblings('.card-collapsible-content');
 
+        // Remove hidden class if it exists to allow slideToggle to work (it might have !important)
+        if ($content.hasClass('hidden')) {
+            $content.hide().removeClass('hidden');
+        }
+
         $content.slideToggle(200);
         $header.toggleClass('collapsed');
     });
@@ -231,6 +236,11 @@ jQuery(document).ready(function ($) {
         var $link = $(this);
         var targetId = $link.data('target');
         var $list = $('#' + targetId);
+
+        // Remove hidden class if it exists to allow slideToggle to work
+        if ($list.hasClass('hidden')) {
+            $list.hide().removeClass('hidden');
+        }
 
         $list.slideToggle(200);
 
