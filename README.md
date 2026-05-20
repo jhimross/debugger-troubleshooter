@@ -6,7 +6,7 @@ A powerful, session-based WordPress plugin for safe debugging and comprehensive 
 **Tags:** debug, troubleshoot, php info, developer
 **Requires at least:** 5.0
 **Requires PHP:** 7.4
-**Tested up to:** 6.9
+**Tested up to:** 7.0
 **Stable tag:** 1.4.1
 **License:** GPL-2.0+
 **License URI:** http://www.gnu.org/licenses/gpl-2.0.txt
@@ -116,6 +116,7 @@ A: The plugin leverages the `plugins_loaded` hook to define the necessary `WP_DE
 ## Changelog
 
 ### 1.4.1 - 2026-05-11
+* **Enhancement:** Tested up to WordPress 7.0.
 * **Feature:** Added "SMTP / Mail Debugger" to test and verify site mail configuration.
 * **Feature:** Captures detailed `WP_Error` data and PHP environment diagnostics upon mail delivery failure.
 * **Enhancement:** Improved AJAX feedback loops and visual status indicators in the dashboard.

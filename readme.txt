@@ -4,7 +4,7 @@ Tags: debug, troubleshoot, php info, developer
 Requires at least: 5.0
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 1.4.2
+Stable tag: 1.4.1
 License: GPL-2.0+
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 Donate link: https://paypal.me/jhimross28
@@ -91,10 +91,8 @@ A: The plugin uses the `plugins_loaded` hook to define the `WP_DEBUG` constants 
 
 == Changelog ==
 
-= 1.4.2 - 2026-05-20 =
-* **Enhancement:** Tested up to WordPress 7.0.
-
 = 1.4.1 - 2026-05-11 =
+* **Enhancement:** Tested up to WordPress 7.0.
 * **Feature:** Added "SMTP / Mail Debugger" to test and verify site mail configuration.
 * **Feature:** Captures detailed WP_Error data and PHP environment diagnostics upon mail delivery failure.
 * **Enhancement:** Improved AJAX feedback loops and visual status indicators in the dashboard.
@@ -146,9 +144,6 @@ A: The plugin uses the `plugins_loaded` hook to define the `WP_DEBUG` constants 
 * Initial release.
 
 == Upgrade Notice ==
-
-= 1.4.2 =
-This update confirms compatibility with WordPress 7.0.
 
 = 1.4.1 =
 This update adds the SMTP / Mail Debugger feature to help diagnose email delivery issues.
