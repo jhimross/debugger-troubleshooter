@@ -3,11 +3,11 @@
 A powerful, session-based WordPress plugin for safe debugging and comprehensive troubleshooting.
 
 **Contributors:** jhimross
-**Tags:** debug, troubleshoot, php info, developer
+**Tags:** debug, troubleshoot, php info, developer, compatibility, conflict
 **Requires at least:** 5.0
 **Requires PHP:** 7.4
 **Tested up to:** 7.0
-**Stable tag:** 1.4.1
+**Stable tag:** 1.5.0
 **License:** GPL-2.0+
 **License URI:** http://www.gnu.org/licenses/gpl-2.0.txt
 **Donate link:** https://paypal.me/jhimross28
@@ -32,6 +32,8 @@ The "Debugger & Troubleshooter" plugin provides essential, non-disruptive tools 
     * Full list of all themes and plugins with their status.
     * Important WordPress constants.
     * **Copy to Clipboard:** One-click button to copy all site info for easy sharing with support.
+* **PHP Compatibility Checker:** Scan all installed plugins for deprecated functions and syntax that may break when upgrading PHP. Results are displayed in a responsive card layout with clear warnings and incompatibility counts.
+* **Conflict Checker:** Systematically identify plugin conflicts through a binary search process. Narrow down suspect plugins by answering whether each group resolves the issue, without disrupting live visitors.
 * **Cache Bypassing:** Automatically attempts to bypass caching (by defining `DONOTCACHEPAGE`) when Troubleshooting Mode is active, ensuring your changes are reflected instantly.
 
 ---
@@ -70,6 +72,14 @@ Use this session-based section to safely **Simulate Theme Switching** and **Simu
 
 Click the button to switch your view to that of a different user role (like "Subscriber" or "Editor"). This is perfect for testing content restrictions and permissions. A prominent "Exit Simulation" button will appear in your Admin Bar to safely return to your administrator account.
 
+### 5. PHP Compatibility Checker
+
+Scan all installed plugins for deprecated PHP functions and syntax incompatible with your target PHP version. Select a target version (e.g., 8.0, 8.2, 8.4) and click "Start Scan" to receive a per-plugin compatibility report with clear warnings and incompatibility counts.
+
+### 6. Conflict Checker
+
+If you are experiencing an issue on your site (admin or front-end), use the Conflict Checker to identify the culprit plugin. The plugin systematically deactivates groups of plugins using your session-based Troubleshooting Mode, asking you whether the issue persists after each step. Once the culprit is found, you can deactivate it with one click.
+
 ### 4. Live Debugging
 
 Safely manage WordPress's debugging constants from the UI.
@@ -91,6 +101,12 @@ A: Yes. When Troubleshooting Mode is active, the plugin defines the `DONOTCACHEP
 **Q: How does Live Debugging work without editing `wp-config.php`?**
 A: The plugin leverages the `plugins_loaded` hook to define the necessary `WP_DEBUG` constants programmatically very early in the WordPress loading sequence, effectively enabling debug mode for all requests while the feature is turned on.
 
+**Q: How does the PHP Compatibility Checker work?**
+A: The checker scans each plugin's PHP files for deprecated functions (like `create_function`, `mysql_*`), incompatible syntax (curly brace access), and other patterns known to break in newer PHP versions. It reports which plugins are compatible, have warnings, or are incompatible with your selected target version.
+
+**Q: How does the Conflict Checker differ from Troubleshooting Mode?**
+A: Troubleshooting Mode manually toggles plugins and themes for testing. The Conflict Checker automates the process using a binary search algorithm — it splits plugins into groups and asks you whether the issue is present after each test, quickly narrowing down the exact culprit.
+
 ---
 
 ## 🖼️ Screenshots
@@ -110,10 +126,19 @@ A: The plugin leverages the `plugins_loaded` hook to define the necessary `WP_DE
 5. The User Role Simulator.
 <img width="1750" height="279" alt="image" src="https://github.com/user-attachments/assets/aa95b2ed-8987-4a74-aea5-8aa3c94c9262" />
 
+6. The PHP Compatibility Checker and Conflict Checker tabs.
+<img width="1918" height="975" alt="screenshot-6" src="" />
+
 
 ---
 
 ## Changelog
+
+### 1.5.0 - 2026-06-04
+* **Feature:** Added Plugin Compatibility Checker to scan and report PHP version compatibility across all installed plugins.
+* **Feature:** Added Conflict Checker (replaces Plugin Detective) to systematically identify plugin conflicts through binary search.
+* **Fix:** Added HTML escaping to all dynamically injected compatibility result content.
+* **Fix:** Removed unused `$roles` variable from User Simulation section.
 
 ### 1.4.1 - 2026-05-20
 * **Enhancement:** Tested up to WordPress 7.0.

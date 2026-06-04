@@ -1,10 +1,10 @@
 === Debugger & Troubleshooter ===
 Contributors: jhimross
-Tags: debug, troubleshoot, php info, developer
+Tags: debug, troubleshoot, php info, developer, compatibility, conflict
 Requires at least: 5.0
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 1.4.1
+Stable tag: 1.5.0
 License: GPL-2.0+
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 Donate link: https://paypal.me/jhimross28
@@ -24,6 +24,8 @@ The "Debugger & Troubleshooter" plugin provides essential tools for WordPress si
 * **Live Debugging:** Safely enable `WP_DEBUG` with a single click from the admin dashboard. Errors are logged to `debug.log` without being displayed on the site, and you can view the log file directly in the plugin's interface.
 * **Comprehensive Site Information:** Get a quick, organized overview of your WordPress environment in collapsible cards. This includes detailed PHP, Database, and Server information, a full list of all themes and plugins with their status, and important WordPress constants.
 * **Copy to Clipboard:** A one-click button allows you to copy all the site information, making it incredibly easy to share with support forums or developers.
+* **PHP Compatibility Checker:** Scan all installed plugins for deprecated functions and syntax that may break when upgrading PHP. Results displayed in a responsive card layout with clear warnings and incompatibility counts.
+* **Conflict Checker:** Systematically identify plugin conflicts through a binary search process. Narrow down suspect plugins by answering whether each group resolves the issue, all within a safe session-based mode.
 * **Safe Debugging & Cache Bypassing:** All troubleshooting actions are session-based. The plugin automatically attempts to bypass caching when Troubleshooting Mode is active, ensuring your changes are reflected instantly.
 * **User-Friendly Interface:** An intuitive dashboard interface makes it easy to access all features.
 * **Admin Notices:** Clear notices alert you when Troubleshooting Mode is active.
@@ -62,6 +64,14 @@ This session-based feature allows you to simulate theme switches and plugin deac
 
 Safely view your site as another user or role (e.g., "Subscriber" or "Editor") without knowing their password. This is perfect for testing capabilities and content restrictions.
 
+### 5. PHP Compatibility Checker
+
+Scan all installed plugins for deprecated PHP functions and syntax incompatible with your target PHP version. Select a target version and click "Start Scan" to receive a per-plugin compatibility report with clear warnings and incompatibility counts.
+
+### 6. Conflict Checker
+
+If you are experiencing an issue on your site, use the Conflict Checker to identify the culprit plugin. The plugin systematically deactivates groups of plugins using your session-based Troubleshooting Mode, asking whether the issue persists after each step. Once the culprit is found, you can deactivate it with one click.
+
 ### 4. Live Debugging
 
 This section allows you to safely manage WordPress's debugging features.
@@ -81,6 +91,12 @@ A: Yes. When Troubleshooting Mode is active, the plugin defines the `DONOTCACHEP
 **Q: How does Live Debugging work without editing wp-config.php?**
 A: The plugin uses the `plugins_loaded` hook to define the `WP_DEBUG` constants programmatically. This happens very early in the WordPress loading sequence, effectively enabling debug mode for all requests while the feature is turned on.
 
+**Q: How does the PHP Compatibility Checker work?**
+A: The checker scans each plugin's PHP files for deprecated functions, incompatible syntax, and other patterns known to break in newer PHP versions, then reports which plugins are compatible, have warnings, or are incompatible.
+
+**Q: How does the Conflict Checker work?**
+A: The Conflict Checker automates plugin conflict identification using a binary search — it splits plugins into groups and asks you whether the issue persists after each test, quickly narrowing down the exact culprit.
+
 == Screenshots ==
 
 1.  The main Debugger & Troubleshooter dashboard showing all feature sections.
@@ -88,8 +104,15 @@ A: The plugin uses the `plugins_loaded` hook to define the `WP_DEBUG` constants 
 3.  An example of the admin notice when Troubleshooting Mode is active.
 4.  The Live Debugging section with the log viewer.
 5.  The User Role Simulator feature to switch to other user.
+6.  The PHP Compatibility Checker and Conflict Checker tabs.
 
 == Changelog ==
+
+= 1.5.0 - 2026-06-04 =
+* **Feature:** Added Plugin Compatibility Checker to scan and report PHP version compatibility across all installed plugins.
+* **Feature:** Added Conflict Checker to systematically identify plugin conflicts through binary search.
+* **Fix:** Added HTML escaping to all dynamically injected compatibility result content.
+* **Fix:** Removed unused `$roles` variable from User Simulation section.
 
 = 1.4.1 - 2026-05-20 =
 * **Enhancement:** Tested up to WordPress 7.0.
@@ -144,6 +167,9 @@ A: The plugin uses the `plugins_loaded` hook to define the `WP_DEBUG` constants 
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.5.0 =
+This update introduces the Plugin Compatibility Checker and Conflict Checker features, plus UI improvements and bug fixes.
 
 = 1.4.1 =
 This update adds the SMTP / Mail Debugger feature to help diagnose email delivery issues.
