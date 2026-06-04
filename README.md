@@ -126,8 +126,12 @@ A: Troubleshooting Mode manually toggles plugins and themes for testing. The Con
 5. The User Role Simulator.
 <img width="1750" height="279" alt="image" src="https://github.com/user-attachments/assets/aa95b2ed-8987-4a74-aea5-8aa3c94c9262" />
 
-6. The PHP Compatibility Checker and Conflict Checker tabs.
-<img width="1918" height="975" alt="screenshot-6" src="" />
+6. Conflict Checker.
+<img width="1918" height="975" alt="screenshot-6" src="<img width="1917" height="916" alt="Screenshot 2026-06-04 at 3 09 01 PM" src="https://github.com/user-attachments/assets/d6a09be6-17f6-4b08-b490-1d0cb8eac800" />
+
+7. The PHP Compatibility Checker .
+<img width="1918" height="975" alt="screenshot-6" src="<img width="1902" height="915" alt="Screenshot 2026-06-04 at 3 08 47 PM" src="https://github.com/user-attachments/assets/befdfafd-a43e-42cd-a260-6c13b0b893a2" />
+
 
 
 ---
