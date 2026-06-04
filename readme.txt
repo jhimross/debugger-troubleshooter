@@ -1,6 +1,6 @@
 === Debugger & Troubleshooter ===
 Contributors: jhimross
-Tags: debug, troubleshoot, php info, developer, compatibility, conflict
+Tags: debug, troubleshoot, php info, developer, compatibility
 Requires at least: 5.0
 Requires PHP: 7.4
 Tested up to: 7.0
