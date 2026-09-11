@@ -3,7 +3,7 @@ Contributors: jhimross
 Tags: debug, troubleshoot, php info, developer, compatibility
 Requires at least: 5.0
 Requires PHP: 7.4
-Tested up to: 6.6
+Tested up to: 7.1
 Stable tag: 1.5.1
 License: GPL-2.0+
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
