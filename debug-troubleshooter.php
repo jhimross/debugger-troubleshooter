@@ -3,7 +3,7 @@
  * Plugin Name:       Debugger & Troubleshooter
  * Plugin URI:        https://wordpress.org/plugins/debugger-troubleshooter
  * Description:       A WordPress plugin for debugging and troubleshooting, allowing simulated plugin deactivation and theme switching without affecting the live site.
- * Version:           1.5.0
+ * Version:           1.5.1
  * Author:            Jhimross
  * Author URI:        https://profiles.wordpress.org/jhimross
  * License:           GPL-2.0+
@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) {
 /**
  * Define plugin constants.
  */
-define('DBGTBL_VERSION', '1.4.1');
+define('DBGTBL_VERSION', '1.5.1');
 define('DBGTBL_DIR', plugin_dir_path(__FILE__));
 define('DBGTBL_URL', plugin_dir_url(__FILE__));
 define('DBGTBL_BASENAME', plugin_basename(__FILE__));
@@ -58,8 +58,6 @@ class Debug_Troubleshooter
 	 */
 	public function __construct()
 	{
-		// Load text domain for internationalization.
-		// Load text domain for internationalization.
 		// add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
 
 		// Initialize admin hooks.
@@ -526,11 +524,47 @@ class Debug_Troubleshooter
 	}
 
 	/**
+	 * Cleans up expired troubleshooting and simulation sessions.
+	 *
+	 * @param string $option_name The option to clean.
+	 * @param string $timestamp_key The key inside each session entry that holds the timestamp.
+	 */
+	private function cleanup_expired_sessions($option_name, $timestamp_key = 'timestamp')
+	{
+		$sessions = get_option($option_name, array());
+		if (empty($sessions) || !is_array($sessions)) {
+			return;
+		}
+
+		$expired_cutoff = time() - (2 * DAY_IN_SECONDS);
+		$changed = false;
+
+		foreach ($sessions as $token => $data) {
+			if (!is_array($data)) {
+				// Legacy entries without timestamp metadata are kept.
+				continue;
+			}
+
+			$timestamp = isset($data[$timestamp_key]) ? (int) $data[$timestamp_key] : 0;
+			if ($timestamp > 0 && $timestamp < $expired_cutoff) {
+				unset($sessions[$token]);
+				$changed = true;
+			}
+		}
+
+		if ($changed) {
+			update_option($option_name, $sessions);
+		}
+	}
+
+	/**
 	 * Initializes the troubleshooting mode.
 	 * This hook runs very early to ensure filters are applied before most of WP loads.
 	 */
 	public function init_troubleshooting_mode()
 	{
+		$this->cleanup_expired_sessions('dbgtbl_sessions');
+
 		if (isset($_COOKIE[self::TROUBLESHOOT_COOKIE])) {
 			$token = sanitize_text_field(wp_unslash($_COOKIE[self::TROUBLESHOOT_COOKIE]));
 			$sessions = get_option('dbgtbl_sessions', array());
@@ -881,12 +915,15 @@ class Debug_Troubleshooter
 	 */
 	public function init_user_simulation()
 	{
+		$this->cleanup_expired_sessions('dbgtbl_sim_users');
+
 		if (isset($_COOKIE[self::SIMULATE_USER_COOKIE])) {
 			$token = sanitize_text_field(wp_unslash($_COOKIE[self::SIMULATE_USER_COOKIE]));
 			$sim_users = get_option('dbgtbl_sim_users', array());
 			
 			if (isset($sim_users[$token])) {
-				$this->simulated_user_id = (int) $sim_users[$token];
+				$data = $sim_users[$token];
+				$this->simulated_user_id = is_array($data) ? (int) $data['user_id'] : (int) $data;
 
 				// Hook into determine_current_user to override the user ID.
 				// Priority 20 ensures we run after most standard authentication checks.
@@ -979,12 +1016,28 @@ class Debug_Troubleshooter
 		}
 
 		$nonce = wp_create_nonce('debug_troubleshoot_nonce');
-		$exit_url = admin_url('admin-ajax.php?action=debug_troubleshoot_toggle_simulate_user&enable=0&nonce=' . $nonce);
+		$ajax_url = admin_url('admin-ajax.php');
+		$redirect_url = admin_url();
 		?>
 		<script type="text/javascript">
 			function debugTroubleshootExitSimulation() {
 				if (confirm('<?php echo esc_js(__('Are you sure you want to exit User Simulation?', 'debugger-troubleshooter')); ?>')) {
-					window.location.href = <?php echo wp_json_encode($exit_url); ?>;
+					var formData = new FormData();
+					formData.append('action', 'debug_troubleshoot_toggle_simulate_user');
+					formData.append('nonce', '<?php echo esc_js($nonce); ?>');
+					formData.append('enable', '0');
+
+					fetch('<?php echo esc_url($ajax_url); ?>', {
+						method: 'POST',
+						credentials: 'same-origin',
+						body: formData
+					}).then(function (response) {
+						return response.json();
+					}).then(function () {
+						window.location.href = '<?php echo esc_url($redirect_url); ?>';
+					}).catch(function () {
+						window.location.href = '<?php echo esc_url($redirect_url); ?>';
+					});
 				}
 			}
 		</script>
@@ -998,20 +1051,30 @@ class Debug_Troubleshooter
 	{
 		check_ajax_referer('debug_troubleshoot_nonce', 'nonce');
 
-		if (!current_user_can('manage_options') && !$this->is_simulating_user()) {
-			// Only allow admins to START simulation.
-			// Anyone (simulated user) can STOP simulation.
-			wp_send_json_error(array('message' => __('Permission denied.', 'debugger-troubleshooter')));
+		$enable = isset($_REQUEST['enable']) ? (bool) $_REQUEST['enable'] : false;
+		$is_post = isset($_SERVER['REQUEST_METHOD']) && 'POST' === $_SERVER['REQUEST_METHOD'];
+
+		if ($enable) {
+			// Only administrators may START a simulation.
+			if (!current_user_can('manage_options')) {
+				wp_send_json_error(array('message' => __('Permission denied.', 'debugger-troubleshooter')));
+			}
+		} else {
+			// Only administrators or the current simulated user may STOP a simulation.
+			if (!current_user_can('manage_options') && !$this->is_simulating_user()) {
+				wp_send_json_error(array('message' => __('Permission denied.', 'debugger-troubleshooter')));
+			}
 		}
 
-		$enable = isset($_REQUEST['enable']) ? (bool) $_REQUEST['enable'] : false;
 		$user_id = isset($_REQUEST['user_id']) ? (int) $_REQUEST['user_id'] : 0;
-		$is_post = isset($_SERVER['REQUEST_METHOD']) && 'POST' === $_SERVER['REQUEST_METHOD'];
 
 		if ($enable && $user_id) {
 			$token = wp_generate_password(64, false);
 			$sim_users = get_option('dbgtbl_sim_users', array());
-			$sim_users[$token] = $user_id;
+			$sim_users[$token] = array(
+				'user_id'   => (int) $user_id,
+				'timestamp' => time(),
+			);
 			update_option('dbgtbl_sim_users', $sim_users);
 
 			// Set cookie
@@ -1150,11 +1213,18 @@ class Debug_Troubleshooter
 
 		$mu_file = $mu_dir . '/debugger-troubleshooter-mu.php';
 
+		// If the MU plugin already exists and matches the current configuration, do nothing.
+		if (file_exists($mu_file) && $this->mu_plugin_is_current($mu_file)) {
+			return;
+		}
+
+		// Build the MU plugin content from the current constants so it never drifts out of sync.
+		$cookie_name = var_export(self::TROUBLESHOOT_COOKIE, true);
 		$mu_content = "<?php
 /**
  * Plugin Name: Debugger & Troubleshooter (MU Plugin)
  * Description: Intercepts active plugins to apply troubleshooting mode correctly.
- * Version: 1.0
+ * Version: 1.1
  * Author: Jhimross
  */
 
@@ -1163,8 +1233,8 @@ if (!defined('ABSPATH')) {
 }
 
 // Ensure the token from cookie exists and maps to an active session.
-if (isset(\$_COOKIE['wp_debug_troubleshoot_mode'])) {
-	\$token = sanitize_text_field(wp_unslash(\$_COOKIE['wp_debug_troubleshoot_mode']));
+if (isset(\$_COOKIE[$cookie_name])) {
+	\$token = sanitize_text_field(wp_unslash(\$_COOKIE[$cookie_name]));
 	\$sessions = get_option('dbgtbl_sessions', array());
 
 	if (isset(\$sessions[\$token]) && is_array(\$sessions[\$token])) {
@@ -1195,6 +1265,22 @@ if (isset(\$_COOKIE['wp_debug_troubleshoot_mode'])) {
 	}
 
 	/**
+	 * Checks whether an existing MU plugin file matches the current plugin configuration.
+	 *
+	 * @param string $mu_file Absolute path to the MU plugin file.
+	 * @return bool
+	 */
+	private function mu_plugin_is_current($mu_file)
+	{
+		$content = @file_get_contents($mu_file);
+		if (false === $content) {
+			return false;
+		}
+
+		return (false !== strpos($content, self::TROUBLESHOOT_COOKIE));
+	}
+
+	/**
 	 * Renders the Conflict Checker tab view.
 	 */
 	public function render_detective_tab()
@@ -1216,17 +1302,17 @@ if (isset(\$_COOKIE['wp_debug_troubleshoot_mode'])) {
 				<?php if (!$detective_state || 'inactive' === $detective_state['status']): ?>
 					<!-- Setup Screen -->
 					<div class="detective-setup-screen">
-						<p class="description" style="margin-bottom: 20px; font-size: 14px; line-height: 1.6;">
+						<p class="description dbgtbl-mb-20" style="font-size: 14px; line-height: 1.6;">
 							<?php esc_html_e('Is your site experiencing a fatal error, white screen of death, or buggy behavior? Instead of deactivating every plugin one by one, the Conflict Checker uses a smart binary search algorithm to find the exact culprit plugin in a few steps. Best of all, it only runs for your session, keeping the live site fully functional for your visitors.', 'debugger-troubleshooter'); ?>
 						</p>
 
-						<div class="debug-troubleshooter-card" style="padding: 20px;">
-							<h3 style="margin-bottom: 15px;"><?php esc_html_e('1. Select Essential Plugins to Keep Active', 'debugger-troubleshooter'); ?></h3>
-							<p class="description" style="margin-bottom: 15px;">
+						<div class="debug-troubleshooter-card dbgtbl-p-20">
+							<h3 class="dbgtbl-mb-15"><?php esc_html_e('1. Select Essential Plugins to Keep Active', 'debugger-troubleshooter'); ?></h3>
+							<p class="description dbgtbl-mb-15">
 								<?php esc_html_e('Select any critical plugins that MUST remain active during troubleshooting (e.g. WooCommerce or Page Builders). The Debugger & Troubleshooter plugin is automatically kept active to prevent breaking this interface.', 'debugger-troubleshooter'); ?>
 							</p>
 							
-							<div class="plugin-list" style="margin-bottom: 20px; max-height: 300px;">
+							<div class="plugin-list dbgtbl-mb-20 dbgtbl-max-h-300">
 								<?php
 								$plugins = get_plugins();
 								$active_plugins = (array) get_option('active_plugins', array());
@@ -1240,7 +1326,7 @@ if (isset(\$_COOKIE['wp_debug_troubleshoot_mode'])) {
 											$plugin_data = $plugins[$plugin_file];
 											$is_own_plugin = (DBGTBL_BASENAME === $plugin_file);
 											?>
-											<label class="plugin-item flex items-center p-2 rounded-md transition-colors duration-200 <?php echo $is_own_plugin ? 'bg-gray-100 text-gray-400' : ''; ?>" style="margin-bottom: 5px;">
+											<label class="plugin-item flex items-center p-2 rounded-md transition-colors duration-200 <?php echo $is_own_plugin ? 'bg-gray-100 text-gray-400' : ''; ?> dbgtbl-mb-5">
 												<input type="checkbox" class="detective-keep-plugin" 
 													value="<?php echo esc_attr($plugin_file); ?>" 
 													<?php checked($is_own_plugin); ?>
@@ -1248,7 +1334,7 @@ if (isset(\$_COOKIE['wp_debug_troubleshoot_mode'])) {
 												<span class="ml-2">
 													<strong><?php echo esc_html($plugin_data['Name']); ?></strong>
 													<?php if ($is_own_plugin): ?>
-														<span style="font-size: 10px; background: #e0e0e0; padding: 2px 5px; border-radius: 3px; margin-left: 5px; color: #555;"><?php esc_html_e('Required', 'debugger-troubleshooter'); ?></span>
+														<span class="dbgtbl-required-badge"><?php esc_html_e('Required', 'debugger-troubleshooter'); ?></span>
 													<?php endif; ?>
 													<br><small><?php echo esc_html($plugin_data['Version']); ?></small>
 												</span>
@@ -1263,7 +1349,7 @@ if (isset(\$_COOKIE['wp_debug_troubleshoot_mode'])) {
 							</div>
 
 							<button id="detective-start-btn" class="button button-primary button-large" <?php disabled(empty($active_plugins)); ?>>
-								<span class="dashicons dashicons-search" style="margin-top: 4px; margin-right: 4px;"></span>
+								<span class="dashicons dashicons-search dbgtbl-dashicon-inline"></span>
 								<?php esc_html_e('Start Conflict Check', 'debugger-troubleshooter'); ?>
 							</button>
 						</div>
@@ -1271,69 +1357,69 @@ if (isset(\$_COOKIE['wp_debug_troubleshoot_mode'])) {
 				<?php elseif ('active' === $detective_state['status']): ?>
 					<!-- Guided Steps Screen -->
 					<div class="detective-steps-screen">
-						<div style="background: #fdf6ec; border-left: 4px solid #e6a23c; padding: 15px; margin-bottom: 25px; border-radius: 0 4px 4px 0;">
-							<h3 style="margin: 0 0 10px 0; color: #b57a1b; font-size: 1.1em; display: flex; align-items: center;">
-								<span class="dashicons dashicons-info" style="margin-right: 8px;"></span>
+						<div class="dbgtbl-step-warning">
+							<h3>
+								<span class="dashicons dashicons-info"></span>
 								<?php printf(esc_html__('Step %d: Narrowing down the suspects', 'debugger-troubleshooter'), $detective_state['step']); ?>
 							</h3>
-							<p style="margin: 0; font-size: 13.5px; line-height: 1.5; color: #606266;">
+							<p>
 								<?php esc_html_e('We have temporarily deactivated half of your suspect plugins in this troubleshooting session. Please test the bug on your website in another browser window or tab.', 'debugger-troubleshooter'); ?>
 							</p>
 						</div>
 
-						<div class="debug-troubleshooter-card" style="padding: 25px; text-align: center; border-color: #dcdfe6; background: #fafafa;">
-							<h3 style="font-size: 1.3em; margin-bottom: 20px; color: #2c3338;"><?php esc_html_e('Is the issue/error still happening on your site?', 'debugger-troubleshooter'); ?></h3>
+						<div class="debug-troubleshooter-card dbgtbl-question-card">
+							<h3><?php esc_html_e('Is the issue/error still happening on your site?', 'debugger-troubleshooter'); ?></h3>
 							
-							<div class="flex flex-col md:flex-row justify-center gap-4" style="max-width: 500px; margin: 0 auto 25px auto;">
-								<button class="detective-answer-btn button-detective-broken" data-answer="broken" style="flex: 1; padding: 15px; height: auto; line-height: normal; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-									<span class="dashicons dashicons-warning" style="font-size: 32px; width: 32px; height: 32px; margin-bottom: 8px;"></span>
+							<div class="flex flex-col md:flex-row justify-center gap-4 dbgtbl-answer-buttons">
+								<button class="detective-answer-btn button-detective-broken dbgtbl-answer-btn" data-answer="broken">
+									<span class="dashicons dashicons-warning"></span>
 									<span><?php esc_html_e('Yes, still broken', 'debugger-troubleshooter'); ?></span>
-									<small style="font-size: 11px; font-weight: normal; margin-top: 5px; opacity: 0.8;"><?php esc_html_e('The bug is still active', 'debugger-troubleshooter'); ?></small>
+									<small><?php esc_html_e('The bug is still active', 'debugger-troubleshooter'); ?></small>
 								</button>
 								
-								<button class="detective-answer-btn button-detective-fixed" data-answer="fixed" style="flex: 1; padding: 15px; height: auto; line-height: normal; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-									<span class="dashicons dashicons-yes-alt" style="font-size: 32px; width: 32px; height: 32px; margin-bottom: 8px;"></span>
+								<button class="detective-answer-btn button-detective-fixed dbgtbl-answer-btn" data-answer="fixed">
+									<span class="dashicons dashicons-yes-alt"></span>
 									<span><?php esc_html_e('No, it is fixed!', 'debugger-troubleshooter'); ?></span>
-									<small style="font-size: 11px; font-weight: normal; margin-top: 5px; opacity: 0.8;"><?php esc_html_e('The bug is gone', 'debugger-troubleshooter'); ?></small>
+									<small><?php esc_html_e('The bug is gone', 'debugger-troubleshooter'); ?></small>
 								</button>
 							</div>
 
-							<div class="detective-meta-info" style="border-top: 1px solid #eee; padding-top: 20px; text-align: left; max-width: 600px; margin: 0 auto;">
-								<h4 style="margin-top: 0; font-size: 14px;"><?php esc_html_e('Current Suspect Summary:', 'debugger-troubleshooter'); ?></h4>
-								<div class="flex justify-between" style="font-size: 13px; color: #606266; margin-bottom: 10px;">
+							<div class="dbgtbl-meta-info">
+								<h4><?php esc_html_e('Current Suspect Summary:', 'debugger-troubleshooter'); ?></h4>
+								<div class="flex justify-between dbgtbl-step-summary">
 									<span><strong><?php esc_html_e('Active suspects:', 'debugger-troubleshooter'); ?></strong> <?php echo count($detective_state['active_group']); ?></span>
 									<span><strong><?php esc_html_e('Deactivated suspects:', 'debugger-troubleshooter'); ?></strong> <?php echo count($detective_state['deactivated_group']); ?></span>
 								</div>
 								
 								<div class="flex gap-4">
-									<div style="flex: 1; background: #fff; border: 1px solid #e4e7ed; border-radius: 4px; padding: 10px; max-height: 150px; overflow-y: auto;">
-										<div style="font-size: 11px; font-weight: bold; color: #909399; margin-bottom: 5px; text-transform: uppercase;"><?php esc_html_e('Active Group', 'debugger-troubleshooter'); ?></div>
-										<ul style="margin: 0; padding: 0; list-style: none; font-size: 12px;">
+									<div class="dbgtbl-group-list">
+										<div class="dbgtbl-group-list-header"><?php esc_html_e('Active Group', 'debugger-troubleshooter'); ?></div>
+										<ul>
 											<?php 
 											$all_installed = get_plugins();
 											foreach ($detective_state['active_group'] as $p_file): 
 												$p_name = isset($all_installed[$p_file]) ? $all_installed[$p_file]['Name'] : $p_file;
 											?>
-												<li style="margin-bottom: 4px; border-bottom: 1px dashed #f0f0f0; padding-bottom: 2px; color: #67c23a;"><?php echo esc_html($p_name); ?></li>
+												<li class="dbgtbl-active"><?php echo esc_html($p_name); ?></li>
 											<?php endforeach; ?>
 										</ul>
 									</div>
-									<div style="flex: 1; background: #fff; border: 1px solid #e4e7ed; border-radius: 4px; padding: 10px; max-height: 150px; overflow-y: auto;">
-										<div style="font-size: 11px; font-weight: bold; color: #909399; margin-bottom: 5px; text-transform: uppercase;"><?php esc_html_e('Deactivated Group', 'debugger-troubleshooter'); ?></div>
-										<ul style="margin: 0; padding: 0; list-style: none; font-size: 12px;">
+									<div class="dbgtbl-group-list">
+										<div class="dbgtbl-group-list-header"><?php esc_html_e('Deactivated Group', 'debugger-troubleshooter'); ?></div>
+										<ul>
 											<?php 
 											foreach ($detective_state['deactivated_group'] as $p_file): 
 												$p_name = isset($all_installed[$p_file]) ? $all_installed[$p_file]['Name'] : $p_file;
 											?>
-												<li style="margin-bottom: 4px; border-bottom: 1px dashed #f0f0f0; padding-bottom: 2px; color: #f56c6c; text-decoration: line-through;"><?php echo esc_html($p_name); ?></li>
+												<li class="dbgtbl-deactivated"><?php echo esc_html($p_name); ?></li>
 											<?php endforeach; ?>
 										</ul>
 									</div>
 								</div>
 
-								<div style="text-align: center; margin-top: 25px;">
-									<button id="detective-abort-btn" class="button button-link" style="color: #909399; font-size: 13px; text-decoration: none;">
-										<span class="dashicons dashicons-no" style="margin-top: 4px;"></span>
+								<div class="dbgtbl-abort-wrapper">
+									<button id="detective-abort-btn" class="button button-link dbgtbl-abort-btn">
+										<span class="dashicons dashicons-no dbgtbl-dashicon-inline"></span>
 										<?php esc_html_e('Abort Check and Restore All Plugins', 'debugger-troubleshooter'); ?>
 									</button>
 								</div>
@@ -1343,12 +1429,12 @@ if (isset(\$_COOKIE['wp_debug_troubleshoot_mode'])) {
 				<?php elseif ('found' === $detective_state['status']): ?>
 					<!-- Culprit Identified Screen -->
 					<div class="detective-result-screen">
-						<div style="background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 6px; padding: 30px; text-align: center; margin-bottom: 20px;">
-							<div style="color: #67c23a; font-size: 48px; line-height: 1; margin-bottom: 15px;">
-								<span class="dashicons dashicons-search" style="font-size: 64px; width: 64px; height: 64px; display: inline-block;"></span>
+						<div class="dbgtbl-result-box">
+							<div class="dbgtbl-result-icon">
+								<span class="dashicons dashicons-search"></span>
 							</div>
-							<h3 style="font-size: 1.8em; margin: 0 0 10px 0; color: #303133;"><?php esc_html_e('Conflict Found! Culprit Identified', 'debugger-troubleshooter'); ?></h3>
-							<p style="font-size: 14.5px; color: #606266; margin: 0 0 25px 0;">
+							<h3 class="dbgtbl-result-title"><?php esc_html_e('Conflict Found! Culprit Identified', 'debugger-troubleshooter'); ?></h3>
+							<p class="dbgtbl-result-desc">
 								<?php esc_html_e('The binary troubleshooter has isolated the plugin that is causing the conflict on your site.', 'debugger-troubleshooter'); ?>
 							</p>
 
@@ -1365,26 +1451,26 @@ if (isset(\$_COOKIE['wp_debug_troubleshoot_mode'])) {
 							}
 							?>
 
-							<div class="debug-troubleshooter-card" style="max-width: 500px; margin: 0 auto 30px auto; padding: 20px; text-align: left; border-left: 6px solid #67c23a; background: #fff; box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);">
-								<h4 style="margin: 0 0 8px 0; font-size: 18px; color: #303133;"><?php echo esc_html($culprit_name); ?></h4>
+							<div class="debug-troubleshooter-card dbgtbl-culprit-card">
+								<h4 class="dbgtbl-culprit-name"><?php echo esc_html($culprit_name); ?></h4>
 								<?php if ($culprit_version): ?>
-									<p style="margin: 0 0 6px 0; font-size: 13px; color: #606266; border: none; padding: 0;">
+									<p class="dbgtbl-culprit-meta">
 										<strong><?php esc_html_e('Version:', 'debugger-troubleshooter'); ?></strong> <?php echo esc_html($culprit_version); ?>
 									</p>
 								<?php endif; ?>
 								<?php if ($culprit_author): ?>
-									<p style="margin: 0; font-size: 13px; color: #606266; border: none; padding: 0;">
+									<p class="dbgtbl-culprit-meta">
 										<strong><?php esc_html_e('Author:', 'debugger-troubleshooter'); ?></strong> <?php echo esc_html($culprit_author); ?>
 									</p>
 								<?php endif; ?>
 							</div>
 
-							<div class="flex flex-col md:flex-row justify-center gap-4" style="max-width: 550px; margin: 0 auto;">
-								<button id="detective-deactivate-btn" class="button button-primary button-large" data-culprit="<?php echo esc_attr($culprit_file); ?>" style="flex: 1; padding: 12px; height: auto; font-size: 15px; font-weight: bold; border-radius: 4px;">
+							<div class="flex flex-col md:flex-row justify-center gap-4 dbgtbl-culprit-actions">
+								<button id="detective-deactivate-btn" class="button button-primary button-large dbgtbl-deactivate-btn" data-culprit="<?php echo esc_attr($culprit_file); ?>">
 									<span class="dashicons dashicons-dismiss" style="margin-top: 2px;"></span>
 									<?php esc_html_e('Deactivate Plugin Globally', 'debugger-troubleshooter'); ?>
 								</button>
-								<button id="detective-reset-only-btn" class="button button-secondary button-large" style="flex: 1; padding: 12px; height: auto; font-size: 15px; font-weight: bold; border-radius: 4px;">
+								<button id="detective-reset-only-btn" class="button button-secondary button-large dbgtbl-reset-btn">
 									<span class="dashicons dashicons-backup" style="margin-top: 2px;"></span>
 									<?php esc_html_e('Close Check (Keep Enabled)', 'debugger-troubleshooter'); ?>
 								</button>
@@ -1394,12 +1480,12 @@ if (isset(\$_COOKIE['wp_debug_troubleshoot_mode'])) {
 				<?php else: ?>
 					<!-- No Culprit Screen -->
 					<div class="detective-no-culprit-screen">
-						<div style="background: #fef0f0; border: 1px solid #fde2e2; border-radius: 6px; padding: 30px; text-align: center; margin-bottom: 20px;">
-							<div style="color: #f56c6c; font-size: 48px; line-height: 1; margin-bottom: 15px;">
-								<span class="dashicons dashicons-search" style="font-size: 64px; width: 64px; height: 64px; display: inline-block;"></span>
+						<div class="dbgtbl-no-culprit-box">
+							<div class="dbgtbl-result-icon" style="color: #f56c6c;">
+								<span class="dashicons dashicons-search"></span>
 							</div>
-							<h3 style="font-size: 1.8em; margin: 0 0 10px 0; color: #303133;"><?php esc_html_e('Unable to Locate Conflict Source', 'debugger-troubleshooter'); ?></h3>
-							<p style="font-size: 14.5px; color: #606266; margin: 0 0 25px 0;">
+							<h3 class="dbgtbl-result-title"><?php esc_html_e('Unable to Locate Conflict Source', 'debugger-troubleshooter'); ?></h3>
+							<p class="dbgtbl-result-desc">
 								<?php esc_html_e('We went through all steps but could not isolate a single plugin. This can happen if the issue is theme-related, core-related, or if the answers given during the process were inconsistent.', 'debugger-troubleshooter'); ?>
 							</p>
 							<button id="detective-reset-fail-btn" class="button button-primary button-large">
@@ -1425,15 +1511,15 @@ if (isset(\$_COOKIE['wp_debug_troubleshoot_mode'])) {
 				<h2><?php esc_html_e('PHP Version Compatibility Checker', 'debugger-troubleshooter'); ?></h2>
 			</div>
 			<div class="section-content">
-				<p class="description" style="margin-bottom: 20px; font-size: 14px; line-height: 1.6;">
+				<p class="description dbgtbl-mb-20" style="font-size: 14px; line-height: 1.6;">
 					<?php esc_html_e('Planning on upgrading your server\'s PHP version? Use this scanner to verify whether WordPress core, your active plugins, and your active theme are compatible with your target PHP version. It scans the plugin/theme metadata headers and checks the code files for deprecated functions and compatibility issues.', 'debugger-troubleshooter'); ?>
 				</p>
 
-				<div class="debug-troubleshooter-card" style="padding: 20px; margin-bottom: 25px; background: #fafafa; border-color: #e4e7ed;">
-					<div class="flex flex-col md:flex-row gap-4 items-end" style="max-width: 600px;">
-						<div style="flex: 1;">
-							<label for="compat-target-php" class="block mb-2 font-medium" style="font-size: 14px;"><?php esc_html_e('Select Target PHP Version:', 'debugger-troubleshooter'); ?></label>
-							<select id="compat-target-php" class="regular-text" style="width: 100%; height: 35px; border-radius: 4px;">
+				<div class="debug-troubleshooter-card dbgtbl-compat-control-card">
+					<div class="flex flex-col md:flex-row gap-4 items-end dbgtbl-compat-controls">
+						<div class="flex-1">
+							<label for="compat-target-php" class="block mb-2 font-medium dbgtbl-compat-control-label"><?php esc_html_e('Select Target PHP Version:', 'debugger-troubleshooter'); ?></label>
+							<select id="compat-target-php" class="regular-text dbgtbl-compat-select">
 								<?php
 								$php_versions = array('7.4', '8.0', '8.1', '8.2', '8.3', '8.4');
 								// Extract major.minor from current php version
@@ -1448,20 +1534,20 @@ if (isset(\$_COOKIE['wp_debug_troubleshoot_mode'])) {
 								?>
 							</select>
 						</div>
-						<button id="compat-run-btn" class="button button-primary button-large" style="height: 35px;">
-							<span class="dashicons dashicons-performance" style="margin-top: 4px; margin-right: 4px;"></span>
+						<button id="compat-run-btn" class="button button-primary button-large dbgtbl-compat-run-btn">
+							<span class="dashicons dashicons-performance dbgtbl-dashicon-inline"></span>
 							<?php esc_html_e('Run Compatibility Check', 'debugger-troubleshooter'); ?>
 						</button>
 					</div>
 
 					<!-- Progress Bar Wrapper -->
-					<div id="compat-progress-wrapper" class="hidden" style="margin-top: 20px;">
-						<div style="display: flex; justify-content: space-between; font-size: 13px; color: #606266; margin-bottom: 6px;">
+					<div id="compat-progress-wrapper" class="hidden dbgtbl-mt-25">
+						<div class="dbgtbl-compat-progress-status">
 							<span id="compat-progress-status"><?php esc_html_e('Initializing...', 'debugger-troubleshooter'); ?></span>
 							<span id="compat-progress-percent">0%</span>
 						</div>
-						<div style="background: #e4e7ed; border-radius: 10px; height: 12px; overflow: hidden; width: 100%;">
-							<div id="compat-progress-bar" style="background: #409eff; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+						<div class="dbgtbl-compat-progress-track">
+							<div id="compat-progress-bar" class="dbgtbl-compat-progress-bar"></div>
 						</div>
 					</div>
 				</div>

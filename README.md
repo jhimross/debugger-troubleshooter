@@ -6,8 +6,8 @@ A powerful, session-based WordPress plugin for safe debugging and comprehensive 
 **Tags:** debug, troubleshoot, php info, developer, compatibility, conflict
 **Requires at least:** 5.0
 **Requires PHP:** 7.4
-**Tested up to:** 7.0
-**Stable tag:** 1.5.0
+**Tested up to:** 6.6
+**Stable tag:** 1.5.1
 **License:** GPL-2.0+
 **License URI:** http://www.gnu.org/licenses/gpl-2.0.txt
 **Donate link:** https://paypal.me/jhimross28
@@ -137,6 +137,17 @@ A: Troubleshooting Mode manually toggles plugins and themes for testing. The Con
 ---
 
 ## Changelog
+
+### 1.5.1 - 2026-09-11
+* **Fix:** Corrected version constant mismatch (`DBGTBL_VERSION` now matches plugin header).
+* **Fix:** Corrected "Tested up to" to reflect the actual tested WordPress version (6.6).
+* **Security:** Added automatic garbage collection for expired troubleshooting and simulation sessions.
+* **Security:** MU plugin now verifies cookie/option consistency on each request.
+* **Security:** Added `uninstall.php` to clean up all plugin options and the MU plugin on deletion.
+* **Security:** Fixed user simulation capability check to prevent simulated users from starting new simulations.
+* **Security:** Converted exit simulation from GET to POST AJAX for safer state changes.
+* **Enhancement:** Moved inline styles to CSS classes for better maintainability.
+* **Enhancement:** Fixed duplicate comment block in plugin constructor.
 
 ### 1.5.0 - 2026-06-04
 * **Feature:** Added Plugin Compatibility Checker to scan and report PHP version compatibility across all installed plugins.

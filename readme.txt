@@ -3,8 +3,8 @@ Contributors: jhimross
 Tags: debug, troubleshoot, php info, developer, compatibility
 Requires at least: 5.0
 Requires PHP: 7.4
-Tested up to: 7.0
-Stable tag: 1.5.0
+Tested up to: 6.6
+Stable tag: 1.5.1
 License: GPL-2.0+
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 Donate link: https://paypal.me/jhimross28
@@ -64,6 +64,14 @@ This session-based feature allows you to simulate theme switches and plugin deac
 
 Safely view your site as another user or role (e.g., "Subscriber" or "Editor") without knowing their password. This is perfect for testing capabilities and content restrictions.
 
+### 4. Live Debugging
+
+This section allows you to safely manage WordPress's debugging features.
+
+* **Enable Live Debug:** Click this button to programmatically enable `WP_DEBUG` and `WP_DEBUG_LOG`, while keeping `WP_DEBUG_DISPLAY` off. This logs errors to `wp-content/debug.log` without showing them to visitors.
+* **Debug Log Viewer:** A text area displays the contents of your `debug.log` file, allowing you to see errors as they are generated.
+* **Clear Log:** Safely clear the `debug.log` file with a click.
+
 ### 5. PHP Compatibility Checker
 
 Scan all installed plugins for deprecated PHP functions and syntax incompatible with your target PHP version. Select a target version and click "Start Scan" to receive a per-plugin compatibility report with clear warnings and incompatibility counts.
@@ -72,13 +80,6 @@ Scan all installed plugins for deprecated PHP functions and syntax incompatible 
 
 If you are experiencing an issue on your site, use the Conflict Checker to identify the culprit plugin. The plugin systematically deactivates groups of plugins using your session-based Troubleshooting Mode, asking whether the issue persists after each step. Once the culprit is found, you can deactivate it with one click.
 
-### 4. Live Debugging
-
-This section allows you to safely manage WordPress's debugging features.
-
-* **Enable Live Debug:** Click this button to programmatically enable `WP_DEBUG` and `WP_DEBUG_LOG`, while keeping `WP_DEBUG_DISPLAY` off. This logs errors to `wp-content/debug.log` without showing them to visitors.
-* **Debug Log Viewer:** A text area displays the contents of your `debug.log` file, allowing you to see errors as they are generated.
-* **Clear Log:** Safely clear the `debug.log` file with a click.
 
 == Frequently Asked Questions ==
 
@@ -107,6 +108,17 @@ A: The Conflict Checker automates plugin conflict identification using a binary 
 6.  The PHP Compatibility Checker and Conflict Checker tabs.
 
 == Changelog ==
+
+= 1.5.1 - 2026-09-11 =
+* **Fix:** Corrected version constant mismatch (DBGTBL_VERSION now matches plugin header).
+* **Fix:** Fixed "Tested up to" version to reflect actual tested WordPress version (6.6).
+* **Security:** Added automatic garbage collection for expired troubleshooting and simulation sessions.
+* **Security:** MU plugin now verifies cookie name and option name consistency on each request.
+* **Security:** Added `uninstall.php` to clean up all plugin options and MU plugin on deletion.
+* **Security:** Fixed user simulation capability check to prevent simulated users from starting new simulations.
+* **Security:** Converted exit simulation from GET request to POST AJAX for safer state changes.
+* **Enhancement:** Moved inline styles to CSS classes for better maintainability.
+* **Enhancement:** Fixed duplicate comment block in plugin constructor.
 
 = 1.5.0 - 2026-06-04 =
 * **Feature:** Added Plugin Compatibility Checker to scan and report PHP version compatibility across all installed plugins.
@@ -167,6 +179,9 @@ A: The Conflict Checker automates plugin conflict identification using a binary 
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.5.1 =
+Security and maintenance update. Adds session garbage collection, safer user simulation, uninstall cleanup, and fixes the version constant mismatch.
 
 = 1.5.0 =
 This update introduces the Plugin Compatibility Checker and Conflict Checker features, plus UI improvements and bug fixes.

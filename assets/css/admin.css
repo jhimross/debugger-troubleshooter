@@ -886,3 +886,345 @@
     }
 }
 
+/* Debugger & Troubleshooter 1.5.1 - utility classes (replace inline styles) */
+.dbgtbl-mb-5 {
+    margin-bottom: 5px;
+}
+
+.dbgtbl-mb-15 {
+    margin-bottom: 15px;
+}
+
+.dbgtbl-mb-20 {
+    margin-bottom: 20px;
+}
+
+.dbgtbl-mt-25 {
+    margin-top: 25px;
+}
+
+.dbgtbl-p-20 {
+    padding: 20px;
+}
+
+.dbgtbl-max-h-300 {
+    max-height: 300px;
+}
+
+.dbgtbl-dashicon-inline {
+    margin-top: 4px;
+    margin-right: 4px;
+}
+
+.dbgtbl-required-badge {
+    font-size: 10px;
+    background: #e0e0e0;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-left: 5px;
+    color: #555;
+}
+
+.dbgtbl-step-warning {
+    background: #fdf6ec;
+    border-left: 4px solid #e6a23c;
+    padding: 15px;
+    margin-bottom: 25px;
+    border-radius: 0 4px 4px 0;
+}
+
+.dbgtbl-step-warning h3 {
+    margin: 0 0 10px 0;
+    color: #b57a1b;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+}
+
+.dbgtbl-step-warning h3 .dashicons {
+    margin-right: 8px;
+}
+
+.dbgtbl-step-warning p {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: #606266;
+}
+
+.dbgtbl-question-card {
+    padding: 25px;
+    text-align: center;
+    border-color: #dcdfe6;
+    background: #fafafa;
+}
+
+.dbgtbl-question-card h3 {
+    font-size: 1.3em;
+    margin-bottom: 20px;
+    color: #2c3338;
+}
+
+.dbgtbl-answer-buttons {
+    flex-direction: column;
+    justify-content: center;
+    gap: 1rem;
+    max-width: 500px;
+    margin: 0 auto 25px auto;
+}
+
+.dbgtbl-answer-btn {
+    flex: 1;
+    padding: 15px;
+    height: auto;
+    line-height: normal;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.dbgtbl-answer-btn .dashicons {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    margin-bottom: 8px;
+}
+
+.dbgtbl-answer-btn small {
+    font-size: 11px;
+    font-weight: normal;
+    margin-top: 5px;
+    opacity: 0.8;
+}
+
+.dbgtbl-meta-info {
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+    text-align: left;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.dbgtbl-meta-info h4 {
+    margin-top: 0;
+    font-size: 14px;
+}
+
+.dbgtbl-step-summary {
+    font-size: 13px;
+    color: #606266;
+    margin-bottom: 10px;
+}
+
+.dbgtbl-group-list {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #e4e7ed;
+    border-radius: 4px;
+    padding: 10px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.dbgtbl-group-list-header {
+    font-size: 11px;
+    font-weight: bold;
+    color: #909399;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+.dbgtbl-group-list ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12px;
+}
+
+.dbgtbl-group-list li {
+    margin-bottom: 4px;
+    border-bottom: 1px dashed #f0f0f0;
+    padding-bottom: 2px;
+}
+
+.dbgtbl-group-list li.dbgtbl-active {
+    color: #67c23a;
+}
+
+.dbgtbl-group-list li.dbgtbl-deactivated {
+    color: #f56c6c;
+    text-decoration: line-through;
+}
+
+.dbgtbl-abort-wrapper {
+    text-align: center;
+    margin-top: 25px;
+}
+
+.dbgtbl-abort-btn {
+    color: #909399;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.dbgtbl-result-box {
+    background: #f0f9eb;
+    border: 1px solid #e1f3d8;
+    border-radius: 6px;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.dbgtbl-result-icon {
+    color: #67c23a;
+    font-size: 48px;
+    line-height: 1;
+    margin-bottom: 15px;
+}
+
+.dbgtbl-result-icon .dashicons {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    display: inline-block;
+}
+
+.dbgtbl-result-title {
+    font-size: 1.8em;
+    margin: 0 0 10px 0;
+    color: #303133;
+}
+
+.dbgtbl-result-desc {
+    font-size: 14.5px;
+    color: #606266;
+    margin: 0 0 25px 0;
+}
+
+.dbgtbl-culprit-card {
+    max-width: 500px;
+    margin: 0 auto 30px auto;
+    padding: 20px;
+    text-align: left;
+    border-left: 6px solid #67c23a;
+    background: #fff;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.dbgtbl-culprit-name {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: #303133;
+}
+
+.dbgtbl-culprit-meta {
+    margin: 0 0 6px 0;
+    font-size: 13px;
+    color: #606266;
+    border: none;
+    padding: 0;
+}
+
+.dbgtbl-culprit-actions {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1rem;
+    max-width: 550px;
+    margin: 0 auto;
+}
+
+.dbgtbl-deactivate-btn,
+.dbgtbl-reset-btn {
+    flex: 1;
+    padding: 12px;
+    height: auto;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 4px;
+}
+
+.dbgtbl-no-culprit-box {
+    background: #fef0f0;
+    border: 1px solid #fde2e2;
+    border-radius: 6px;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.dbgtbl-compat-control-card {
+    padding: 20px;
+    margin-bottom: 25px;
+    background: #fafafa;
+    border-color: #e4e7ed;
+}
+
+.dbgtbl-compat-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    max-width: 600px;
+}
+
+.dbgtbl-compat-control-label {
+    font-size: 14px;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    display: block;
+}
+
+.dbgtbl-compat-select {
+    width: 100%;
+    height: 35px;
+    border-radius: 4px;
+}
+
+.dbgtbl-compat-run-btn {
+    height: 35px;
+}
+
+.dbgtbl-compat-progress-status {
+    font-size: 13px;
+    color: #606266;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.dbgtbl-compat-progress-track {
+    background: #e4e7ed;
+    border-radius: 10px;
+    height: 12px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.dbgtbl-compat-progress-bar {
+    background: #409eff;
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+@media (min-width: 768px) {
+    .dbgtbl-answer-buttons {
+        flex-direction: row;
+    }
+
+    .dbgtbl-culprit-actions {
+        flex-direction: row;
+    }
+
+    .dbgtbl-compat-controls {
+        flex-direction: row;
+        align-items: flex-end;
+    }
+}
+
