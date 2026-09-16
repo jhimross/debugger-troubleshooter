@@ -32,7 +32,7 @@ The "Debugger & Troubleshooter" plugin provides essential, non-disruptive tools 
     * Full list of all themes and plugins with their status.
     * Important WordPress constants.
     * **Copy to Clipboard:** One-click button to copy all site info for easy sharing with support.
-* **PHP Compatibility Checker:** Scan all installed plugins for deprecated functions and syntax that may break when upgrading PHP. Results are displayed in a responsive card layout with clear warnings and incompatibility counts.
+* **PHP Compatibility Checker:** Scan all installed plugins for deprecated functions and syntax that may break when upgrading PHP. Test against any target version from PHP 7.4 through the latest release (8.5). Results are displayed in a responsive card layout with clear warnings and incompatibility counts.
 * **Conflict Checker:** Systematically identify plugin conflicts through a binary search process. Narrow down suspect plugins by answering whether each group resolves the issue, without disrupting live visitors.
 * **Cache Bypassing:** Automatically attempts to bypass caching (by defining `DONOTCACHEPAGE`) when Troubleshooting Mode is active, ensuring your changes are reflected instantly.
 
@@ -74,7 +74,7 @@ Click the button to switch your view to that of a different user role (like "Sub
 
 ### 5. PHP Compatibility Checker
 
-Scan all installed plugins for deprecated PHP functions and syntax incompatible with your target PHP version. Select a target version (e.g., 8.0, 8.2, 8.4) and click "Start Scan" to receive a per-plugin compatibility report with clear warnings and incompatibility counts.
+Scan all installed plugins for deprecated PHP functions and syntax incompatible with your target PHP version. Select a target version (e.g., 8.0, 8.2, up to the latest 8.5) and click "Start Scan" to receive a per-plugin compatibility report with clear warnings and incompatibility counts.
 
 ### 6. Conflict Checker
 
@@ -138,9 +138,18 @@ A: Troubleshooting Mode manually toggles plugins and themes for testing. The Con
 
 ## Changelog
 
-### 1.5.1 - 2026-09-11
-* **Fix:** Corrected version constant mismatch (`DBGTBL_VERSION` now matches plugin header).
-* **Fix:** Corrected "Tested up to" to reflect the actual tested WordPress version (6.6).
+### 1.5.1 - 2026-09-16
+* **Security:** Troubleshooting and user simulation sessions are now bound to the administrator who created them, only honored for that admin's authenticated browser session.
+* **Security:** Shortened troubleshooting/simulation cookie lifetime from 24h to 6h and aligned session garbage collection accordingly.
+* **Fix:** Translations now actually load (`load_plugin_textdomain`) — added a `languages/` directory and template.
+* **Fix:** Added activation/deactivation hooks; deactivation removes the leftover must-use plugin drop-in.
+* **Fix:** Simulated theme switching now correctly resolves child-theme parents.
+* **Fix:** Debug log clearing no longer depends on the WP_Filesystem API (prevents FTP-credential failures).
+* **Fix:** User simulation AJAX now reads POST data only.
+* **Fix:** Inactive plugin count no longer double-counts network-active plugins on multisite.
+* **Fix:** Added `Requires at least` and `Requires PHP` headers to the main plugin file.
+* **Fix:** Corrected "Tested up to" to WordPress 7.1.
+* **Enhancement:** PHP Compatibility Checker now scans against the latest PHP release (8.5); the plugin is compatible with PHP 7.4 through 8.5.
 * **Security:** Added automatic garbage collection for expired troubleshooting and simulation sessions.
 * **Security:** MU plugin now verifies cookie/option consistency on each request.
 * **Security:** Added `uninstall.php` to clean up all plugin options and the MU plugin on deletion.

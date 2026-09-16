@@ -24,7 +24,7 @@ The "Debugger & Troubleshooter" plugin provides essential tools for WordPress si
 * **Live Debugging:** Safely enable `WP_DEBUG` with a single click from the admin dashboard. Errors are logged to `debug.log` without being displayed on the site, and you can view the log file directly in the plugin's interface.
 * **Comprehensive Site Information:** Get a quick, organized overview of your WordPress environment in collapsible cards. This includes detailed PHP, Database, and Server information, a full list of all themes and plugins with their status, and important WordPress constants.
 * **Copy to Clipboard:** A one-click button allows you to copy all the site information, making it incredibly easy to share with support forums or developers.
-* **PHP Compatibility Checker:** Scan all installed plugins for deprecated functions and syntax that may break when upgrading PHP. Results displayed in a responsive card layout with clear warnings and incompatibility counts.
+* **PHP Compatibility Checker:** Scan all installed plugins for deprecated functions and syntax that may break when upgrading PHP. Test against any target version from PHP 7.4 through the latest release (8.5). Results displayed in a responsive card layout with clear warnings and incompatibility counts.
 * **Conflict Checker:** Systematically identify plugin conflicts through a binary search process. Narrow down suspect plugins by answering whether each group resolves the issue, all within a safe session-based mode.
 * **Safe Debugging & Cache Bypassing:** All troubleshooting actions are session-based. The plugin automatically attempts to bypass caching when Troubleshooting Mode is active, ensuring your changes are reflected instantly.
 * **User-Friendly Interface:** An intuitive dashboard interface makes it easy to access all features.
@@ -109,9 +109,18 @@ A: The Conflict Checker automates plugin conflict identification using a binary 
 
 == Changelog ==
 
-= 1.5.1 - 2026-09-11 =
-* **Fix:** Corrected version constant mismatch (DBGTBL_VERSION now matches plugin header).
-* **Fix:** Fixed "Tested up to" version to reflect actual tested WordPress version (6.6).
+= 1.5.1 - 2026-09-16 =
+* **Security:** Troubleshooting and user simulation sessions are now bound to the administrator who created them, and are only honored for that admin's authenticated browser session.
+* **Security:** Shortened troubleshooting/simulation cookie lifetime from 24h to 6h and aligned session garbage collection accordingly.
+* **Fix:** Translations now actually load (`load_plugin_textdomain`) — added a `languages/` directory and template with the plugin text domain.
+* **Fix:** Added activation/deactivation hooks; deactivation now removes the leftover must-use plugin drop-in.
+* **Fix:** Simulated theme switching now correctly resolves child-theme parents.
+* **Fix:** Debug log clearing no longer depends on the WP_Filesystem API, preventing silent failures on servers requiring FTP credentials.
+* **Fix:** User simulation AJAX now reads POST data only.
+* **Fix:** Inactive plugin count no longer double-counts network-active plugins on multisite.
+* **Fix:** Added "Requires at least" and "Requires PHP" headers to the main plugin file.
+* **Fix:** Corrected "Tested up to" to WordPress 7.1.
+* **Enhancement:** PHP Compatibility Checker now scans against the latest PHP release (8.5); the plugin is compatible with PHP 7.4 through 8.5.
 * **Security:** Added automatic garbage collection for expired troubleshooting and simulation sessions.
 * **Security:** MU plugin now verifies cookie name and option name consistency on each request.
 * **Security:** Added `uninstall.php` to clean up all plugin options and MU plugin on deletion.
@@ -181,7 +190,7 @@ A: The Conflict Checker automates plugin conflict identification using a binary 
 == Upgrade Notice ==
 
 = 1.5.1 =
-Security and maintenance update. Adds session garbage collection, safer user simulation, uninstall cleanup, and fixes the version constant mismatch.
+Security and maintenance update. Sessions are now owner-bound, cookies shortened, translations enabled, PHP Compatibility Checker supports the latest PHP (8.5), and several robustness fixes shipped.
 
 = 1.5.0 =
 This update introduces the Plugin Compatibility Checker and Conflict Checker features, plus UI improvements and bug fixes.

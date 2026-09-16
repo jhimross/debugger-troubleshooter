@@ -1,0 +1,727 @@
+# Copyright (C) 2026 Jhimross
+# This file is distributed under the same license as the Debugger & Troubleshooter package.
+msgid ""
+msgstr ""
+"Project-Id-Version: Debugger & Troubleshooter 1.5.1\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/debugger-troubleshooter\n"
+"POT-Creation-Date: 2026-09-16+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: opencode\n"
+"X-Domain: debugger-troubleshooter\n"
+
+#: debug-troubleshooter.php:1618
+msgid " (Current Server PHP)"
+msgstr ""
+
+#: debug-troubleshooter.php:1058
+msgid "-- Select a User --"
+msgstr ""
+
+#: debug-troubleshooter.php:1398
+msgid "1. Select Essential Plugins to Keep Active"
+msgstr ""
+
+#: debug-troubleshooter.php:1511
+msgid "Abort Check and Restore All Plugins"
+msgstr ""
+
+#: debug-troubleshooter.php:1484
+msgid "Active Group"
+msgstr ""
+
+#: debug-troubleshooter.php:451
+msgid "Active Plugins:"
+msgstr ""
+
+#: debug-troubleshooter.php:427
+msgid "Active Theme:"
+msgstr ""
+
+#: debug-troubleshooter.php:1478
+msgid "Active suspects:"
+msgstr ""
+
+#: debug-troubleshooter.php:291
+msgid "Apply Troubleshooting Changes"
+msgstr ""
+
+#: debug-troubleshooter.php:293
+msgid "Applying changes will refresh the page to reflect your simulated theme and plugin states."
+msgstr ""
+
+#: debug-troubleshooter.php:1111
+msgid "Are you sure you want to exit User Simulation?"
+msgstr ""
+
+#: debug-troubleshooter.php:1551
+msgid "Author:"
+msgstr ""
+
+#: debug-troubleshooter.php:395
+msgid "Cancel"
+msgstr ""
+
+#: debug-troubleshooter.php:1386
+msgid "Check Active - Step %d"
+msgstr ""
+
+#: debug-troubleshooter.php:255
+msgid "Check plugins to simulate deactivating them for your session. Unchecked plugins will remain active."
+msgstr ""
+
+#: debug-troubleshooter.php:328
+msgid "Clear Log"
+msgstr ""
+
+#: debug-troubleshooter.php:1090
+msgid "Click to return to your original user account"
+msgstr ""
+
+#: debug-troubleshooter.php:1563
+msgid "Close Check (Keep Enabled)"
+msgstr ""
+
+#: debug-troubleshooter.php:1648
+msgid "Compatible"
+msgstr ""
+
+#: debug-troubleshooter.php:397
+msgid "Confirm"
+msgstr ""
+
+#: debug-troubleshooter.php:201
+msgid "Conflict Checker"
+msgstr ""
+
+#: debug-troubleshooter.php:1384
+msgid "Conflict Checker (Binary Troubleshooter)"
+msgstr ""
+
+#: debug-troubleshooter.php:1524
+msgid "Conflict Found! Culprit Identified"
+msgstr ""
+
+#: debug-troubleshooter.php:1928
+msgid "Conflict check reset. Site returned to original settings."
+msgstr ""
+
+#: debug-troubleshooter.php:1763
+msgid "Conflict check started! Page will reload to apply deactivations."
+msgstr ""
+
+#: debug-troubleshooter.php:179
+msgid "Copied!"
+msgstr ""
+
+#: debug-troubleshooter.php:178 debug-troubleshooter.php:212
+msgid "Copy to Clipboard"
+msgstr ""
+
+#: debug-troubleshooter.php:769
+msgid "Could not clear the debug log."
+msgstr ""
+
+#: debug-troubleshooter.php:1829
+msgid "Could not isolate the culprit plugin."
+msgstr ""
+
+#: debug-troubleshooter.php:1815
+msgid "Culprit plugin identified successfully!"
+msgstr ""
+
+#: debug-troubleshooter.php:2208
+msgid "Curly brace offset access is removed in PHP 8.0."
+msgstr ""
+
+#: debug-troubleshooter.php:1476
+msgid "Current Suspect Summary:"
+msgstr ""
+
+#: debug-troubleshooter.php:500
+msgid "DB Charset:"
+msgstr ""
+
+#: debug-troubleshooter.php:501
+msgid "DB Collate:"
+msgstr ""
+
+#: debug-troubleshooter.php:499
+msgid "DB Host:"
+msgstr ""
+
+#: debug-troubleshooter.php:498
+msgid "DB Name:"
+msgstr ""
+
+#: debug-troubleshooter.php:493
+msgid "Database Engine:"
+msgstr ""
+
+#: debug-troubleshooter.php:491
+msgid "Database Information"
+msgstr ""
+
+#: debug-troubleshooter.php:1559
+msgid "Deactivate Plugin Globally"
+msgstr ""
+
+#: debug-troubleshooter.php:1496
+msgid "Deactivated Group"
+msgstr ""
+
+#: debug-troubleshooter.php:1479
+msgid "Deactivated suspects:"
+msgstr ""
+
+#: debug-troubleshooter.php:326
+msgid "Debug Log Viewer"
+msgstr ""
+
+#: debug-troubleshooter.php:767
+msgid "Debug log cleared successfully."
+msgstr ""
+
+#: debug-troubleshooter.php:772
+msgid "Debug log does not exist."
+msgstr ""
+
+#: debug-troubleshooter.php:764
+msgid "Debug log is not writable."
+msgstr ""
+
+#: debug-troubleshooter.php:139 debug-troubleshooter.php:140 debug-troubleshooter.php:195
+msgid "Debugger & Troubleshooter"
+msgstr ""
+
+#: debug-troubleshooter.php:551
+msgid "Defined but empty/non-scalar"
+msgstr ""
+
+#: debug-troubleshooter.php:316
+msgid "Disable Live Debug"
+msgstr ""
+
+#: debug-troubleshooter.php:511
+msgid "Document Root:"
+msgstr ""
+
+#: debug-troubleshooter.php:316
+msgid "Enable Live Debug"
+msgstr ""
+
+#: debug-troubleshooter.php:321
+msgid "Enable this to turn on WP_DEBUG without editing your wp-config.php file. Errors will be logged to the debug.log file below, not displayed on the site."
+msgstr ""
+
+#: debug-troubleshooter.php:224
+msgid "Enter Troubleshooting Mode"
+msgstr ""
+
+#: debug-troubleshooter.php:229
+msgid "Enter Troubleshooting Mode to simulate deactivating plugins and switching themes without affecting your live website for other visitors. This mode uses browser cookies and only applies to your session."
+msgstr ""
+
+#: debug-troubleshooter.php:177
+msgid "Error"
+msgstr ""
+
+#: debug-troubleshooter.php:224
+msgid "Exit Troubleshooting Mode"
+msgstr ""
+
+#: debug-troubleshooter.php:1086
+msgid "Exit User Simulation"
+msgstr ""
+
+#: debug-troubleshooter.php:485
+msgid "GD Library:"
+msgstr ""
+
+#: debug-troubleshooter.php:200
+msgid "General Tools"
+msgstr ""
+
+#: debug-troubleshooter.php:985
+msgid "Go to Debugger & Troubleshooter page to manage."
+msgstr ""
+
+#: debug-troubleshooter.php:512
+msgid "HTTPS:"
+msgstr ""
+
+#: debug-troubleshooter.php:181
+msgid "Hide"
+msgstr ""
+
+#: debug-troubleshooter.php:486
+msgid "Imagick Library:"
+msgstr ""
+
+#: debug-troubleshooter.php:455
+msgid "Inactive Plugins:"
+msgstr ""
+
+#: debug-troubleshooter.php:429
+msgid "Inactive Themes:"
+msgstr ""
+
+#: debug-troubleshooter.php:1656
+msgid "Incompatible"
+msgstr ""
+
+#: debug-troubleshooter.php:1634
+msgid "Initializing..."
+msgstr ""
+
+#: debug-troubleshooter.php:1781
+msgid "Invalid answer."
+msgstr ""
+
+#: debug-troubleshooter.php:1241
+msgid "Invalid email address."
+msgstr ""
+
+#: debug-troubleshooter.php:2000
+msgid "Invalid target PHP version."
+msgstr ""
+
+#: debug-troubleshooter.php:966
+msgid "Invalid troubleshooting session."
+msgstr ""
+
+#: debug-troubleshooter.php:1459
+msgid "Is the issue/error still happening on your site?"
+msgstr ""
+
+#: debug-troubleshooter.php:1394
+msgid "Is your site experiencing a fatal error, white screen of death, or buggy behavior? Instead of deactivating every plugin one by one, the Conflict Checker uses a smart binary search algorithm to find the exact culprit plugin in a few steps. Best of all, it only runs for your session, keeping the live site fully functional for your visitors."
+msgstr ""
+
+#: debug-troubleshooter.php:745
+msgid "Live Debug mode disabled."
+msgstr ""
+
+#: debug-troubleshooter.php:743
+msgid "Live Debug mode enabled."
+msgstr ""
+
+#: debug-troubleshooter.php:313
+msgid "Live Debugging"
+msgstr ""
+
+#: debug-troubleshooter.php:482
+msgid "Max Execution Time:"
+msgstr ""
+
+#: debug-troubleshooter.php:483
+msgid "Max Input Vars:"
+msgstr ""
+
+#: debug-troubleshooter.php:478
+msgid "Memory Limit:"
+msgstr ""
+
+#: debug-troubleshooter.php:1867
+msgid "Moving to Step %d. Reloading page..."
+msgstr ""
+
+#: debug-troubleshooter.php:419
+msgid "Multisite:"
+msgstr ""
+
+#: debug-troubleshooter.php:496
+msgid "MySQL Version:"
+msgstr ""
+
+#: debug-troubleshooter.php:453
+msgid "Network Active Plugins:"
+msgstr ""
+
+#: debug-troubleshooter.php:1434
+msgid "No active plugins found to troubleshoot."
+msgstr ""
+
+#: debug-troubleshooter.php:285
+msgid "No plugins found."
+msgstr ""
+
+#: debug-troubleshooter.php:1470
+msgid "No, it is fixed!"
+msgstr ""
+
+#: debug-troubleshooter.php:1069
+msgid "Note: You can exit the simulation at any time using the "Exit Simulation" button in the Admin Bar."
+msgstr ""
+
+#: debug-troubleshooter.php:384
+msgid "OK"
+msgstr ""
+
+#: debug-troubleshooter.php:202
+msgid "PHP Compatibility"
+msgstr ""
+
+#: debug-troubleshooter.php:475
+msgid "PHP Information"
+msgstr ""
+
+#: debug-troubleshooter.php:1599
+msgid "PHP Version Compatibility Checker"
+msgstr ""
+
+#: debug-troubleshooter.php:477
+msgid "PHP Version:"
+msgstr ""
+
+#: debug-troubleshooter.php:479
+msgid "Peak Memory Usage:"
+msgstr ""
+
+#: debug-troubleshooter.php:418
+msgid "Permalink Structure:"
+msgstr ""
+
+#: debug-troubleshooter.php:735 debug-troubleshooter.php:757 debug-troubleshooter.php:850 debug-troubleshooter.php:920 debug-troubleshooter.php:1147 debug-troubleshooter.php:1152 debug-troubleshooter.php:1235 debug-troubleshooter.php:1674 debug-troubleshooter.php:1776 debug-troubleshooter.php:1882 debug-troubleshooter.php:1939 debug-troubleshooter.php:1992
+msgid "Permission denied."
+msgstr ""
+
+#: debug-troubleshooter.php:1603
+msgid "Planning on upgrading your server's PHP version? Use this scanner to verify whether WordPress core, your active plugins, and your active theme are compatible with your target PHP version. It scans the plugin/theme metadata headers and checks the code files for deprecated functions and compatibility issues."
+msgstr ""
+
+#: debug-troubleshooter.php:2048
+msgid "Plugin file not found."
+msgstr ""
+
+#: debug-troubleshooter.php:450
+msgid "Plugins"
+msgstr ""
+
+#: debug-troubleshooter.php:480
+msgid "Post Max Size:"
+msgstr ""
+
+#: debug-troubleshooter.php:347
+msgid "Recipient Email Address"
+msgstr ""
+
+#: debug-troubleshooter.php:1425
+msgid "Required"
+msgstr ""
+
+#: debug-troubleshooter.php:2020 debug-troubleshooter.php:2058
+msgid "Requires PHP %s+ (selected version is PHP %s)."
+msgstr ""
+
+#: debug-troubleshooter.php:1580
+msgid "Restart Check"
+msgstr ""
+
+#: debug-troubleshooter.php:1627
+msgid "Run Compatibility Check"
+msgstr ""
+
+#: debug-troubleshooter.php:338
+msgid "SMTP / Mail Debugger"
+msgstr ""
+
+#: debug-troubleshooter.php:1609
+msgid "Select Target PHP Version:"
+msgstr ""
+
+#: debug-troubleshooter.php:1055
+msgid "Select User to Simulate"
+msgstr ""
+
+#: debug-troubleshooter.php:237
+msgid "Select a theme to preview. This will change the theme for your session only."
+msgstr ""
+
+#: debug-troubleshooter.php:1400
+msgid "Select any critical plugins that MUST remain active during troubleshooting (e.g. WooCommerce or Page Builders). The Debugger & Troubleshooter plugin is automatically kept active to prevent breaking this interface."
+msgstr ""
+
+#: debug-troubleshooter.php:353
+msgid "Send Test Email"
+msgstr ""
+
+#: debug-troubleshooter.php:342
+msgid "Send a test email to verify your site's mail configuration. If the email fails, the plugin will attempt to capture the exact error message."
+msgstr ""
+
+#: debug-troubleshooter.php:510
+msgid "Server Address:"
+msgstr ""
+
+#: debug-troubleshooter.php:506
+msgid "Server Information"
+msgstr ""
+
+#: debug-troubleshooter.php:509
+msgid "Server Protocol:"
+msgstr ""
+
+#: debug-troubleshooter.php:180 debug-troubleshooter.php:429 debug-troubleshooter.php:455
+msgid "Show All"
+msgstr ""
+
+#: debug-troubleshooter.php:253
+msgid "Simulate Plugin Deactivation"
+msgstr ""
+
+#: debug-troubleshooter.php:235
+msgid "Simulate Theme Switch"
+msgstr ""
+
+#: debug-troubleshooter.php:1066
+msgid "Simulate User"
+msgstr ""
+
+#: debug-troubleshooter.php:210
+msgid "Site Information"
+msgstr ""
+
+#: debug-troubleshooter.php:417
+msgid "Site Language:"
+msgstr ""
+
+#: debug-troubleshooter.php:1441
+msgid "Start Conflict Check"
+msgstr ""
+
+#: debug-troubleshooter.php:1451
+msgid "Step %d: Narrowing down the suspects"
+msgstr ""
+
+#: debug-troubleshooter.php:176
+msgid "Success"
+msgstr ""
+
+#: debug-troubleshooter.php:1244
+msgid "Test Email from %s"
+msgstr ""
+
+#: debug-troubleshooter.php:1263
+msgid "Test email sent successfully! Please check your inbox (and spam folder)."
+msgstr ""
+
+#: debug-troubleshooter.php:2225
+msgid "The ${var} string interpolation syntax is deprecated in PHP 8.2."
+msgstr ""
+
+#: debug-troubleshooter.php:1526
+msgid "The binary troubleshooter has isolated the plugin that is causing the conflict on your site."
+msgstr ""
+
+#: debug-troubleshooter.php:1471
+msgid "The bug is gone"
+msgstr ""
+
+#: debug-troubleshooter.php:1465
+msgid "The bug is still active"
+msgstr ""
+
+#: debug-troubleshooter.php:1266
+msgid "The email could not be sent."
+msgstr ""
+
+#: debug-troubleshooter.php:426
+msgid "Themes"
+msgstr ""
+
+#: debug-troubleshooter.php:1695
+msgid "There are no active suspect plugins to troubleshoot. Make sure there are other active plugins besides the excluded ones."
+msgstr ""
+
+#: debug-troubleshooter.php:1246
+msgid "This is a test email sent from the Debugger & Troubleshooter plugin to verify mail delivery.\n\nSite: %s\nTime: %s\nSent by: %s\n\nIf you received this, your site's mail configuration is working correctly."
+msgstr ""
+
+#: debug-troubleshooter.php:221
+msgid "Troubleshooting Mode"
+msgstr ""
+
+#: debug-troubleshooter.php:982
+msgid "Troubleshooting Mode is Active!"
+msgstr ""
+
+#: debug-troubleshooter.php:886
+msgid "Troubleshooting mode activated."
+msgstr ""
+
+#: debug-troubleshooter.php:908
+msgid "Troubleshooting mode deactivated."
+msgstr ""
+
+#: debug-troubleshooter.php:949
+msgid "Troubleshooting session not found."
+msgstr ""
+
+#: debug-troubleshooter.php:1788
+msgid "Troubleshooting session or conflict check not found."
+msgstr ""
+
+#: debug-troubleshooter.php:969
+msgid "Troubleshooting state updated successfully. Refreshing page..."
+msgstr ""
+
+#: debug-troubleshooter.php:1575
+msgid "Unable to Locate Conflict Source"
+msgstr ""
+
+#: debug-troubleshooter.php:554
+msgid "Undefined"
+msgstr ""
+
+#: debug-troubleshooter.php:481
+msgid "Upload Max Filesize:"
+msgstr ""
+
+#: debug-troubleshooter.php:2220
+msgid "Use of deprecated function `utf8_decode()`. Use mb_convert_encoding instead."
+msgstr ""
+
+#: debug-troubleshooter.php:2216
+msgid "Use of deprecated function `utf8_encode()`. Use mb_convert_encoding instead."
+msgstr ""
+
+#: debug-troubleshooter.php:2191
+msgid "Use of removed function `convert_cyr_string()`."
+msgstr ""
+
+#: debug-troubleshooter.php:2167
+msgid "Use of removed function `create_function()`."
+msgstr ""
+
+#: debug-troubleshooter.php:2175
+msgid "Use of removed function `define_syslog_variables()`."
+msgstr ""
+
+#: debug-troubleshooter.php:2171
+msgid "Use of removed function `each()`. Replace with foreach."
+msgstr ""
+
+#: debug-troubleshooter.php:2195
+msgid "Use of removed function `ezmlm_hash()`."
+msgstr ""
+
+#: debug-troubleshooter.php:2183
+msgid "Use of removed function `get_magic_quotes_gpc()`."
+msgstr ""
+
+#: debug-troubleshooter.php:2187
+msgid "Use of removed function `get_magic_quotes_runtime()`."
+msgstr ""
+
+#: debug-troubleshooter.php:2203
+msgid "Use of removed function `hebrevc()`. Use nl2br(hebrev()) instead."
+msgstr ""
+
+#: debug-troubleshooter.php:2179
+msgid "Use of removed function `magic_quotes_runtime()`."
+msgstr ""
+
+#: debug-troubleshooter.php:2199
+msgid "Use of removed function `restore_include_path()`."
+msgstr ""
+
+#: debug-troubleshooter.php:301
+msgid "User Role Simulator"
+msgstr ""
+
+#: debug-troubleshooter.php:1178
+msgid "User simulation activated. Redirecting..."
+msgstr ""
+
+#: debug-troubleshooter.php:1205
+msgid "User simulation deactivated."
+msgstr ""
+
+#: debug-troubleshooter.php:1546
+msgid "Version:"
+msgstr ""
+
+#: debug-troubleshooter.php:305
+msgid "View the site as a specific user or role. This allows you to test permissions and user-specific content without logging out. This only affects your session."
+msgstr ""
+
+#: debug-troubleshooter.php:1652
+msgid "Warnings"
+msgstr ""
+
+#: debug-troubleshooter.php:1454
+msgid "We have temporarily deactivated half of your suspect plugins in this troubleshooting session. Please test the bug on your website in another browser window or tab."
+msgstr ""
+
+#: debug-troubleshooter.php:1577
+msgid "We went through all steps but could not isolate a single plugin. This can happen if the issue is theme-related, core-related, or if the answers given during the process were inconsistent."
+msgstr ""
+
+#: debug-troubleshooter.php:508
+msgid "Web Server:"
+msgstr ""
+
+#: debug-troubleshooter.php:2127
+msgid "WordPress %s has limited/beta support for PHP %s. Recommended WordPress version for PHP 8.4+ is 6.6+."
+msgstr ""
+
+#: debug-troubleshooter.php:2133
+msgid "WordPress %s has limited/beta support for PHP %s. Recommended WordPress version for PHP 8.5+ is 7.0+."
+msgstr ""
+
+#: debug-troubleshooter.php:2103
+msgid "WordPress %s is not compatible with PHP %s. Recommended WordPress version for PHP 8.0+ is 5.6+."
+msgstr ""
+
+#: debug-troubleshooter.php:2109
+msgid "WordPress %s is not compatible with PHP %s. Recommended WordPress version for PHP 8.1+ is 5.9+."
+msgstr ""
+
+#: debug-troubleshooter.php:2115
+msgid "WordPress %s is not compatible with PHP %s. Recommended WordPress version for PHP 8.2+ is 6.1+."
+msgstr ""
+
+#: debug-troubleshooter.php:2121
+msgid "WordPress %s is not compatible with PHP %s. Recommended WordPress version for PHP 8.3+ is 6.4+."
+msgstr ""
+
+#: debug-troubleshooter.php:517
+msgid "WordPress Constants"
+msgstr ""
+
+#: debug-troubleshooter.php:414
+msgid "WordPress Information"
+msgstr ""
+
+#: debug-troubleshooter.php:416
+msgid "WordPress Version:"
+msgstr ""
+
+#: debug-troubleshooter.php:2097
+msgid "WordPress requires PHP 5.6.20 or higher. Target PHP %s is not supported."
+msgstr ""
+
+#: debug-troubleshooter.php:1464
+msgid "Yes, still broken"
+msgstr ""
+
+#: debug-troubleshooter.php:983
+msgid "You are currently in a special troubleshooting session. Your simulated theme and plugin states are not affecting the live site for other visitors."
+msgstr ""
+
+#: debug-troubleshooter.php:484
+msgid "cURL Extension:"
+msgstr ""
+
+#: debug-troubleshooter.php:711
+msgid "debug.log file does not exist or is not readable."
+msgstr ""
+
+#: debug-troubleshooter.php:715
+msgid "debug.log is empty."
+msgstr ""

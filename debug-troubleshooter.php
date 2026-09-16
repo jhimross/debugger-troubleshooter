@@ -4,6 +4,8 @@
  * Plugin URI:        https://wordpress.org/plugins/debugger-troubleshooter
  * Description:       A WordPress plugin for debugging and troubleshooting, allowing simulated plugin deactivation and theme switching without affecting the live site.
  * Version:           1.5.1
+ * Requires at least: 5.0
+ * Requires PHP:      7.4
  * Author:            Jhimross
  * Author URI:        https://profiles.wordpress.org/jhimross
  * License:           GPL-2.0+
@@ -58,7 +60,8 @@ class Debug_Troubleshooter
 	 */
 	public function __construct()
 	{
-		// add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
+		// Load translations.
+		add_action('plugins_loaded', array($this, 'load_textdomain'));
 
 		// Initialize admin hooks.
 		add_action('admin_menu', array($this, 'add_admin_menu'));
@@ -91,6 +94,38 @@ class Debug_Troubleshooter
 		// Include exit simulation script if active.
 		add_action('wp_footer', array($this, 'print_exit_simulation_script'));
 		add_action('admin_footer', array($this, 'print_exit_simulation_script'));
+	}
+
+	/**
+	 * Loads the plugin text domain for translations.
+	 */
+	public function load_textdomain()
+	{
+		load_plugin_textdomain('debugger-troubleshooter', false, dirname(DBGTBL_BASENAME) . '/languages');
+	}
+
+	/**
+	 * Runs on plugin activation.
+	 */
+	public static function activate()
+	{
+		$mu_dir = WPMU_PLUGIN_DIR;
+		if (!is_dir($mu_dir)) {
+			wp_mkdir_p($mu_dir);
+		}
+	}
+
+	/**
+	 * Runs on plugin deactivation.
+	 * Removes the must-use drop-in used by troubleshooting mode so it never
+	 * lingers after the plugin is disabled.
+	 */
+	public static function deactivate()
+	{
+		$mu_file = WPMU_PLUGIN_DIR . '/debugger-troubleshooter-mu.php';
+		if (file_exists($mu_file)) {
+			@unlink($mu_file);
+		}
 	}
 
 
@@ -407,7 +442,10 @@ class Debug_Troubleshooter
 		$all_plugins = get_plugins();
 		$active_plugins = (array) get_option('active_plugins', array());
 		$network_active_plugins = is_multisite() ? array_keys(get_site_option('active_sitewide_plugins', array())) : array();
-		$inactive_plugins_count = count($all_plugins) - count($active_plugins) - count($network_active_plugins);
+		// Merge before counting so a plugin that is both network-active and
+		// site-active is never counted twice (avoids a negative "inactive" count).
+		$all_active_plugins = array_unique(array_merge($active_plugins, $network_active_plugins));
+		$inactive_plugins_count = count($all_plugins) - count($all_active_plugins);
 
 		echo '<h4>' . esc_html__('Plugins', 'debugger-troubleshooter') . '</h4>';
 		echo '<p><strong>' . esc_html__('Active Plugins:', 'debugger-troubleshooter') . '</strong> ' . count($active_plugins) . '</p>';
@@ -536,7 +574,7 @@ class Debug_Troubleshooter
 			return;
 		}
 
-		$expired_cutoff = time() - (2 * DAY_IN_SECONDS);
+		$expired_cutoff = time() - (12 * HOUR_IN_SECONDS);
 		$changed = false;
 
 		foreach ($sessions as $token => $data) {
@@ -570,6 +608,14 @@ class Debug_Troubleshooter
 			$sessions = get_option('dbgtbl_sessions', array());
 
 			if (isset($sessions[$token]) && is_array($sessions[$token])) {
+				// Only honor sessions owned by the currently authenticated user.
+				if (isset($sessions[$token]['user_id'])) {
+					$owner = (int) $sessions[$token]['user_id'];
+					if ($owner > 0 && $owner !== $this->get_authenticated_user_id()) {
+						return;
+					}
+				}
+
 				$this->troubleshoot_state = $sessions[$token];
 
 				// Define DONOTCACHEPAGE to prevent caching plugins from interfering.
@@ -587,10 +633,27 @@ class Debug_Troubleshooter
 				}
 
 				// Filter theme.
-				add_filter('pre_option_template', array($this, 'filter_theme'));
-				add_filter('pre_option_stylesheet', array($this, 'filter_theme'));
+				add_filter('pre_option_template', array($this, 'filter_theme_template'));
+				add_filter('pre_option_stylesheet', array($this, 'filter_theme_stylesheet'));
 			}
 		}
+	}
+
+	/**
+	 * Returns the ID of the user authenticated by the auth cookie.
+	 *
+	 * This is used to verify session ownership even while a user simulation is
+	 * active, since get_current_user_id() returns the simulated user at that point.
+	 *
+	 * @return int The authenticated user ID, or 0 if unauthenticated.
+	 */
+	private function get_authenticated_user_id()
+	{
+		if (isset($_COOKIE[AUTH_COOKIE])) {
+			$user_id = wp_validate_auth_cookie(wp_unslash($_COOKIE[AUTH_COOKIE]), 'logged_in');
+			return $user_id ? (int) $user_id : 0;
+		}
+		return 0;
 	}
 
 	/**
@@ -694,19 +757,13 @@ class Debug_Troubleshooter
 			wp_send_json_error(array('message' => __('Permission denied.', 'debugger-troubleshooter')));
 		}
 
-		global $wp_filesystem;
-		if (!$wp_filesystem) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-			WP_Filesystem();
-		}
-
 		$log_file = WP_CONTENT_DIR . '/debug.log';
 
-		if ($wp_filesystem->exists($log_file)) {
-			if (!$wp_filesystem->is_writable($log_file)) {
+		if (file_exists($log_file)) {
+			if (!is_writable($log_file)) {
 				wp_send_json_error(array('message' => __('Debug log is not writable.', 'debugger-troubleshooter')));
 			}
-			if ($wp_filesystem->put_contents($log_file, '')) {
+			if (false !== @file_put_contents($log_file, '')) {
 				wp_send_json_success(array('message' => __('Debug log cleared successfully.', 'debugger-troubleshooter')));
 			} else {
 				wp_send_json_error(array('message' => __('Could not clear the debug log.', 'debugger-troubleshooter')));
@@ -751,12 +808,30 @@ class Debug_Troubleshooter
 	}
 
 	/**
-	 * Filters the active theme based on troubleshooting state.
+	 * Filters the active theme template (parent) based on troubleshooting state.
+	 * For child themes, the template must point to the parent, not the child.
 	 *
-	 * @param string|false $theme The active theme stylesheet or template.
-	 * @return string|false Filtered theme stylesheet or template.
+	 * @param string|false $theme The active theme template.
+	 * @return string|false Filtered theme template.
 	 */
-	public function filter_theme($theme)
+	public function filter_theme_template($theme)
+	{
+		if ($this->is_troubleshooting_active() && isset($this->troubleshoot_state['theme'])) {
+			$slug = $this->troubleshoot_state['theme'];
+			$theme_obj = wp_get_theme($slug);
+			$parent = $theme_obj->get('Template');
+			return $parent ? $parent : $slug;
+		}
+		return $theme;
+	}
+
+	/**
+	 * Filters the active theme stylesheet based on troubleshooting state.
+	 *
+	 * @param string|false $theme The active theme stylesheet.
+	 * @return string|false Filtered theme stylesheet.
+	 */
+	public function filter_theme_stylesheet($theme)
 	{
 		if ($this->is_troubleshooting_active() && isset($this->troubleshoot_state['theme'])) {
 			return $this->troubleshoot_state['theme'];
@@ -788,6 +863,7 @@ class Debug_Troubleshooter
 				'plugins' => $current_active_plugins,
 				'sitewide_plugins' => $current_sitewide_plugins,
 				'timestamp' => time(),
+				'user_id' => get_current_user_id(),
 			);
 			
 			$token = wp_generate_password(64, false);
@@ -800,7 +876,7 @@ class Debug_Troubleshooter
 
 			// Set cookie with HttpOnly flag for security, and secure flag if site is HTTPS.
 			setcookie(self::TROUBLESHOOT_COOKIE, $token, array(
-				'expires' => time() + DAY_IN_SECONDS,
+				'expires' => time() + 6 * HOUR_IN_SECONDS,
 				'path' => COOKIEPATH,
 				'domain' => COOKIE_DOMAIN,
 				'samesite' => 'Lax', // or 'Strict' if preferred, 'Lax' is a good balance.
@@ -868,13 +944,6 @@ class Debug_Troubleshooter
 			}
 		}
 
-		$state = array(
-			'theme' => $selected_theme,
-			'plugins' => $new_active_plugins,
-			'sitewide_plugins' => $new_active_sitewide_plugins,
-			'timestamp' => time(),
-		);
-
 		$token = isset($_COOKIE[self::TROUBLESHOOT_COOKIE]) ? sanitize_text_field(wp_unslash($_COOKIE[self::TROUBLESHOOT_COOKIE])) : false;
 		if (!$token) {
 			wp_send_json_error(array('message' => __('Troubleshooting session not found.', 'debugger-troubleshooter')));
@@ -882,7 +951,16 @@ class Debug_Troubleshooter
 
 		$sessions = get_option('dbgtbl_sessions', array());
 		if (isset($sessions[$token])) {
-			$sessions[$token] = $state;
+			// Preserve the session owner so an update can never re-bind the session.
+			$owner_id = isset($sessions[$token]['user_id']) ? (int) $sessions[$token]['user_id'] : get_current_user_id();
+
+			$sessions[$token] = array(
+				'theme' => $selected_theme,
+				'plugins' => $new_active_plugins,
+				'sitewide_plugins' => $new_active_sitewide_plugins,
+				'timestamp' => time(),
+				'user_id' => $owner_id,
+			);
 			update_option('dbgtbl_sessions', $sessions);
 		} else {
 			wp_send_json_error(array('message' => __('Invalid troubleshooting session.', 'debugger-troubleshooter')));
@@ -923,6 +1001,15 @@ class Debug_Troubleshooter
 			
 			if (isset($sim_users[$token])) {
 				$data = $sim_users[$token];
+
+				// Only honor simulations owned by the currently authenticated user.
+				if (is_array($data) && isset($data['owner_id'])) {
+					$owner = (int) $data['owner_id'];
+					if ($owner > 0 && $owner !== $this->get_authenticated_user_id()) {
+						return;
+					}
+				}
+
 				$this->simulated_user_id = is_array($data) ? (int) $data['user_id'] : (int) $data;
 
 				// Hook into determine_current_user to override the user ID.
@@ -1051,7 +1138,7 @@ class Debug_Troubleshooter
 	{
 		check_ajax_referer('debug_troubleshoot_nonce', 'nonce');
 
-		$enable = isset($_REQUEST['enable']) ? (bool) $_REQUEST['enable'] : false;
+		$enable = isset($_POST['enable']) ? (bool) $_POST['enable'] : false;
 		$is_post = isset($_SERVER['REQUEST_METHOD']) && 'POST' === $_SERVER['REQUEST_METHOD'];
 
 		if ($enable) {
@@ -1066,20 +1153,21 @@ class Debug_Troubleshooter
 			}
 		}
 
-		$user_id = isset($_REQUEST['user_id']) ? (int) $_REQUEST['user_id'] : 0;
+		$user_id = isset($_POST['user_id']) ? (int) $_POST['user_id'] : 0;
 
 		if ($enable && $user_id) {
 			$token = wp_generate_password(64, false);
 			$sim_users = get_option('dbgtbl_sim_users', array());
 			$sim_users[$token] = array(
 				'user_id'   => (int) $user_id,
+				'owner_id'  => get_current_user_id(),
 				'timestamp' => time(),
 			);
 			update_option('dbgtbl_sim_users', $sim_users);
 
 			// Set cookie
 			setcookie(self::SIMULATE_USER_COOKIE, $token, array(
-				'expires' => time() + DAY_IN_SECONDS,
+				'expires' => time() + 6 * HOUR_IN_SECONDS,
 				'path' => COOKIEPATH,
 				'domain' => COOKIE_DOMAIN,
 				'samesite' => 'Lax',
@@ -1521,7 +1609,7 @@ if (isset(\$_COOKIE[$cookie_name])) {
 							<label for="compat-target-php" class="block mb-2 font-medium dbgtbl-compat-control-label"><?php esc_html_e('Select Target PHP Version:', 'debugger-troubleshooter'); ?></label>
 							<select id="compat-target-php" class="regular-text dbgtbl-compat-select">
 								<?php
-								$php_versions = array('7.4', '8.0', '8.1', '8.2', '8.3', '8.4');
+								$php_versions = array('7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5');
 								// Extract major.minor from current php version
 								$current_php_short = substr($current_php, 0, 3);
 								foreach ($php_versions as $ver) {
@@ -1623,12 +1711,13 @@ if (isset(\$_COOKIE[$cookie_name])) {
 				'plugins' => $current_active_plugins,
 				'sitewide_plugins' => $current_sitewide_plugins,
 				'timestamp' => time(),
+				'user_id' => get_current_user_id(),
 			);
 			$sessions[$token] = $state;
 			
 			// Setup Cookie
 			setcookie(self::TROUBLESHOOT_COOKIE, $token, array(
-				'expires' => time() + DAY_IN_SECONDS,
+				'expires' => time() + 6 * HOUR_IN_SECONDS,
 				'path' => COOKIEPATH,
 				'domain' => COOKIE_DOMAIN,
 				'samesite' => 'Lax',
@@ -1907,7 +1996,7 @@ if (isset(\$_COOKIE[$cookie_name])) {
 		$type = isset($_POST['type']) ? sanitize_text_field(wp_unslash($_POST['type'])) : '';
 		$target_php = isset($_POST['target_php']) ? sanitize_text_field(wp_unslash($_POST['target_php'])) : '';
 
-		if (!in_array($target_php, array('7.4', '8.0', '8.1', '8.2', '8.3', '8.4'), true)) {
+		if (!in_array($target_php, array('7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5'), true)) {
 			wp_send_json_error(array('message' => __('Invalid target PHP version.', 'debugger-troubleshooter')));
 		}
 
@@ -2036,6 +2125,12 @@ if (isset(\$_COOKIE[$cookie_name])) {
 			$details[] = array(
 				'level' => 'warning',
 				'message' => sprintf(__('WordPress %s has limited/beta support for PHP %s. Recommended WordPress version for PHP 8.4+ is 6.6+.', 'debugger-troubleshooter'), $wp_version, $target_php)
+			);
+		} elseif (version_compare($target_php, '8.5', '>=') && $wp_float < 7.0) {
+			$status = 'warning';
+			$details[] = array(
+				'level' => 'warning',
+				'message' => sprintf(__('WordPress %s has limited/beta support for PHP %s. Recommended WordPress version for PHP 8.5+ is 7.0+.', 'debugger-troubleshooter'), $wp_version, $target_php)
 			);
 		}
 
@@ -2193,6 +2288,10 @@ if (isset(\$_COOKIE[$cookie_name])) {
 		}
 	}
 }
+
+// Register lifecycle hooks.
+register_activation_hook(__FILE__, array('Debug_Troubleshooter', 'activate'));
+register_deactivation_hook(__FILE__, array('Debug_Troubleshooter', 'deactivate'));
 
 // Initialize the plugin.
 new Debug_Troubleshooter();
