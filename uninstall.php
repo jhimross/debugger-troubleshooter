@@ -1,26 +1,39 @@
 <?php
 /**
- * Uninstall routine for the Debugger & Troubleshooter plugin.
- *
- * Deletes all plugin options and removes the automatically generated MU
- * plugin drop-in that is used to intercept active plugins during
- * troubleshooting mode.
+ * Uninstall routine for Debugger & Troubleshooter.
  *
  * @package Debugger_Troubleshooter
  */
 
-// Exit if not called by WordPress uninstall.
 if (!defined('WP_UNINSTALL_PLUGIN')) {
 	exit;
 }
 
-// Delete plugin options.
-delete_option('dbgtbl_sessions');
-delete_option('dbgtbl_sim_users');
-delete_option('wp_debug_troubleshoot_debug_mode');
+$dbgtbl_delete_site_data = static function () {
+	delete_option('dbgtbl_sessions');
+	delete_option('dbgtbl_sim_users');
+	delete_option('wp_debug_troubleshoot_debug_mode');
+	delete_option('dbgtbl_profiler_users');
+};
 
-// Remove the MU plugin drop-in used for troubleshooting mode.
-$mu_file = WPMU_PLUGIN_DIR . '/debugger-troubleshooter-mu.php';
-if (file_exists($mu_file)) {
-	@unlink($mu_file);
+if (is_multisite()) {
+	$dbgtbl_site_ids = get_sites(array('fields' => 'ids'));
+
+	foreach ($dbgtbl_site_ids as $dbgtbl_site_id) {
+		switch_to_blog($dbgtbl_site_id);
+		$dbgtbl_delete_site_data();
+		restore_current_blog();
+	}
+} else {
+	$dbgtbl_delete_site_data();
+}
+
+// Profiler history is stored per user (user meta is shared across a network).
+delete_metadata('user', 0, 'dbgtbl_profiler_history', '', true);
+
+foreach (array('debugger-troubleshooter-mu.php', 'debugger-troubleshooter-early.php') as $dbgtbl_mu_name) {
+	$dbgtbl_mu_file = WPMU_PLUGIN_DIR . '/' . $dbgtbl_mu_name;
+	if (file_exists($dbgtbl_mu_file)) {
+		wp_delete_file($dbgtbl_mu_file);
+	}
 }

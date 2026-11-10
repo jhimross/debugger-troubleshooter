@@ -84,6 +84,7 @@ jQuery(document).ready(function ($) {
                 if (response.success) {
                     showAlert(debugTroubleshoot.alert_title_success, response.data.message);
                     isDebugMode = enableMode; // Update state
+                    loadLog(true);
                     $button.text(isDebugMode ? 'Disable Live Debug' : 'Enable Live Debug');
                     if (isDebugMode) {
                         $button.removeClass('button-primary').addClass('button-danger');
@@ -103,43 +104,355 @@ jQuery(document).ready(function ($) {
         });
     });
 
-    // Handle Clear Log button - Show confirmation modal
-    $('#clear-debug-log').on('click', function () {
-        var modal = $('#debug-troubleshoot-confirm-modal');
-        $('#debug-troubleshoot-confirm-title').text('Confirm Action');
-        $('#debug-troubleshoot-confirm-message').text('Are you sure you want to clear the debug.log file? This action cannot be undone.');
-        modal.removeClass('hidden');
+    // Generic confirmation modal. Calls onConfirm when the user clicks Confirm.
+    var pendingConfirm = null;
+
+    function showConfirm(title, message, onConfirm) {
+        pendingConfirm = onConfirm;
+        $('#debug-troubleshoot-confirm-title').text(title);
+        $('#debug-troubleshoot-confirm-message').text(message);
+        $('#debug-troubleshoot-confirm-modal').removeClass('hidden');
+    }
+
+    $('#debug-troubleshoot-confirm-ok').on('click', function () {
+        // Hide the confirm modal before running the action so a result alert is clickable.
+        $('#debug-troubleshoot-confirm-modal').addClass('hidden');
+        var callback = pendingConfirm;
+        pendingConfirm = null;
+        if (typeof callback === 'function') {
+            callback();
+        }
     });
 
-    // Handle the actual log clearing after confirmation
-    $('#debug-troubleshoot-confirm-ok').on('click', function () {
-        var $button = $('#clear-debug-log');
-        $button.prop('disabled', true);
+    $('#debug-troubleshoot-confirm-cancel').on('click', function () {
+        pendingConfirm = null;
+    });
 
-        // IMMEDIATELY hide the confirm modal before showing the alert
-        $('#debug-troubleshoot-confirm-modal').addClass('hidden');
+    // Handle Clear Log button
+    $('#clear-debug-log').on('click', function () {
+        var path = (lastLogReport && lastLogReport.path) ? lastLogReport.path : 'debug.log';
+
+        showConfirm(i18n.confirm_title, i18n.confirm_clear.replace('%s', path), function () {
+            var $button = $('#clear-debug-log');
+            $button.prop('disabled', true);
+
+            $.ajax({
+                url: debugTroubleshoot.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'debug_troubleshoot_clear_debug_log',
+                    nonce: debugTroubleshoot.nonce
+                },
+                success: function (response) {
+                    if (response.success) {
+                        showAlert(debugTroubleshoot.alert_title_success, response.data.message);
+                        loadLog();
+                    } else {
+                        showAlert(debugTroubleshoot.alert_title_error, response.data.message, 'error');
+                    }
+                },
+                error: function () {
+                    showAlert(debugTroubleshoot.alert_title_error, i18n.ajax_error, 'error');
+                },
+                complete: function () {
+                    $button.prop('disabled', false);
+                }
+            });
+        });
+    });
+
+    // --- SMART LOG VIEWER ---
+
+    var i18n = debugTroubleshoot.i18n || {};
+    var lastLogReport = null;
+    var logFilter = { level: 'all', component: '', search: '' };
+    var logView = 'grouped';
+    var logRefreshTimer = null;
+    var openGroups = {};
+
+    function formatString(template) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        return template.replace(/%(\d+)\$s|%[sd]/g, function (match, index) {
+            var value = index ? args[parseInt(index, 10) - 1] : args.shift();
+            return value === undefined ? match : value;
+        });
+    }
+
+    function loadLog(silent) {
+        if (!$('#dbgtbl-log-viewer').length) {
+            return;
+        }
+
+        var $refresh = $('#dbgtbl-log-refresh');
+        if (!silent) {
+            $refresh.prop('disabled', true).find('.dashicons').addClass('dbgtbl-spin');
+        }
 
         $.ajax({
             url: debugTroubleshoot.ajax_url,
             type: 'POST',
             data: {
-                action: 'debug_troubleshoot_clear_debug_log',
+                action: 'debug_troubleshoot_get_log',
                 nonce: debugTroubleshoot.nonce
             },
             success: function (response) {
                 if (response.success) {
-                    $('#debug-log-viewer').val('Debug log cleared successfully.');
-                    showAlert(debugTroubleshoot.alert_title_success, response.data.message);
-                } else {
+                    lastLogReport = response.data;
+                    renderLogReport();
+                } else if (!silent) {
                     showAlert(debugTroubleshoot.alert_title_error, response.data.message, 'error');
                 }
             },
             error: function () {
-                showAlert(debugTroubleshoot.alert_title_error, 'An AJAX error occurred.', 'error');
+                if (!silent) {
+                    showAlert(debugTroubleshoot.alert_title_error, i18n.ajax_error, 'error');
+                }
             },
             complete: function () {
+                $refresh.prop('disabled', false).find('.dashicons').removeClass('dbgtbl-spin');
+            }
+        });
+    }
+
+    function renderLogReport() {
+        var r = lastLogReport;
+        if (!r) {
+            return;
+        }
+
+        // Meta line.
+        $('#dbgtbl-log-meta').text(formatString(i18n.meta, r.path, r.size_human, r.total_entries));
+
+        // Warnings.
+        var warnings = [];
+        if (r.large) { warnings.push(i18n.large); }
+        if (r.truncated) { warnings.push(i18n.truncated); }
+        var $warning = $('#dbgtbl-log-warning');
+        if (warnings.length) {
+            $warning.removeClass('hidden').find('p').text(warnings.join(' '));
+        } else {
+            $warning.addClass('hidden');
+        }
+
+        // Level filter buttons with counts.
+        var $levels = $('#dbgtbl-log-levels').empty();
+        var total = 0;
+        $.each(r.levels, function (level, count) { total += count; });
+
+        var levelOrder = ['all', 'fatal', 'warning', 'notice', 'deprecated', 'database', 'other'];
+        $.each(levelOrder, function (_, level) {
+            var count = level === 'all' ? total : (r.levels[level] || 0);
+            if (level !== 'all' && count === 0) {
+                return;
+            }
+            var $btn = $('<button type="button" class="button dbgtbl-level"></button>')
+                .attr('data-level', level)
+                .addClass('dbgtbl-level-' + level)
+                .toggleClass('active', logFilter.level === level);
+            $btn.append($('<span></span>').text(i18n.levels[level] || level));
+            $btn.append($('<span class="dbgtbl-count"></span>').text(count));
+            $levels.append($btn);
+        });
+
+        // Component dropdown.
+        var $component = $('#dbgtbl-log-component');
+        $component.empty().append($('<option value=""></option>').text(i18n.all_sources));
+        $.each(r.components, function (_, c) {
+            $component.append($('<option></option>').val(c.key).text(c.label + ' (' + c.count + ')'));
+        });
+        if (logFilter.component && !r.components.some(function (c) { return c.key === logFilter.component; })) {
+            logFilter.component = '';
+        }
+        $component.val(logFilter.component);
+
+        // Raw view.
+        $('#debug-log-viewer').val(r.raw);
+
+        renderLogGroups();
+    }
+
+    function renderLogGroups() {
+        var r = lastLogReport;
+        var $groups = $('#dbgtbl-log-groups').empty();
+
+        if (!r.exists) {
+            $groups.append($('<p class="dbgtbl-empty"></p>').text(i18n.no_log));
+            return;
+        }
+        if (!r.readable) {
+            $groups.append($('<p class="dbgtbl-empty"></p>').text(i18n.not_readable));
+            return;
+        }
+        if (!r.groups.length) {
+            $groups.append($('<p class="dbgtbl-empty"></p>').text(i18n.empty));
+            return;
+        }
+
+        var search = logFilter.search.toLowerCase();
+        var shown = 0;
+
+        $.each(r.groups, function (index, g) {
+            if (logFilter.level !== 'all' && g.level !== logFilter.level) { return; }
+            if (logFilter.component && g.component !== logFilter.component) { return; }
+            if (search && (g.message + ' ' + g.file + ' ' + g.component_label).toLowerCase().indexOf(search) === -1) { return; }
+
+            shown++;
+            var key = g.level + '|' + g.message;
+            var $item = $('<details class="dbgtbl-log-group"></details>').addClass('dbgtbl-log-' + g.level);
+            if (openGroups[key]) {
+                $item.attr('open', 'open');
+            }
+            $item.on('toggle', function () {
+                openGroups[key] = this.open;
+            });
+
+            var $summary = $('<summary></summary>');
+            $summary.append($('<span class="dbgtbl-badge"></span>').addClass('dbgtbl-badge-' + g.level).text(i18n.levels[g.level] || g.level));
+            $summary.append($('<span class="dbgtbl-times"></span>').text(formatString(i18n.times, g.count)));
+
+            var $main = $('<span class="dbgtbl-log-main"></span>');
+            // The file and line are shown separately, so drop them from the one-line summary.
+            var summaryText = g.message.split("\n")[0];
+            if (g.file) {
+                summaryText = summaryText.replace(/\s+in\s+\S+?\.php(?:\s+on\s+line\s+\d+|:\d+)\s*$/, '');
+            }
+            $main.append($('<span class="dbgtbl-log-message"></span>').text(summaryText));
+
+            var $sub = $('<span class="dbgtbl-log-sub"></span>');
+            $sub.append($('<span class="dbgtbl-chip"></span>').text(g.component_label));
+            if (g.file) {
+                $sub.append($('<code></code>').text(g.file + (g.line ? ':' + g.line : '')));
+            }
+            if (g.last_seen) {
+                $sub.append($('<span></span>').text(i18n.last_seen + ': ' + g.last_seen));
+            }
+            $main.append($sub);
+            $summary.append($main);
+            $item.append($summary);
+
+            var $body = $('<div class="dbgtbl-log-body"></div>');
+            $body.append($('<pre class="dbgtbl-log-full"></pre>').text(g.message));
+            var details = [];
+            if (g.first_seen) { details.push(i18n.first_seen + ': ' + g.first_seen); }
+            if (g.last_seen) { details.push(i18n.last_seen + ': ' + g.last_seen); }
+            if (g.via_trace) { details.push(g.component_label + ' ' + i18n.via_trace); }
+            if (details.length) {
+                $body.append($('<p class="dbgtbl-log-dates"></p>').text(details.join(' · ')));
+            }
+            if (g.trace && g.trace.length) {
+                $body.append($('<strong></strong>').text(i18n.stack_trace));
+                $body.append($('<pre class="dbgtbl-log-trace"></pre>').text(g.trace.join("\n")));
+            }
+            $item.append($body);
+
+            $groups.append($item);
+        });
+
+        if (!shown) {
+            $groups.append($('<p class="dbgtbl-empty"></p>').text(i18n.no_match));
+        }
+    }
+
+    function setLogView(view) {
+        logView = view;
+        $('.dbgtbl-view').removeClass('active').filter('[data-view="' + view + '"]').addClass('active');
+        $('#dbgtbl-log-groups').toggleClass('hidden', view !== 'grouped');
+        $('#debug-log-viewer').toggleClass('hidden', view !== 'raw');
+        $('#dbgtbl-log-levels, #dbgtbl-log-component, #dbgtbl-log-search').toggleClass('dbgtbl-disabled', view === 'raw');
+    }
+
+    $(document).on('click', '.dbgtbl-level', function () {
+        logFilter.level = $(this).attr('data-level');
+        $('.dbgtbl-level').removeClass('active');
+        $(this).addClass('active');
+        renderLogGroups();
+    });
+
+    $('#dbgtbl-log-component').on('change', function () {
+        logFilter.component = $(this).val();
+        renderLogGroups();
+    });
+
+    var searchTimer = null;
+    $('#dbgtbl-log-search').on('input', function () {
+        var value = $(this).val();
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function () {
+            logFilter.search = value;
+            renderLogGroups();
+        }, 150);
+    });
+
+    $('.dbgtbl-view').on('click', function () {
+        setLogView($(this).attr('data-view'));
+    });
+
+    $('#dbgtbl-log-refresh').on('click', function () {
+        loadLog();
+    });
+
+    $('#dbgtbl-log-autorefresh').on('change', function () {
+        clearInterval(logRefreshTimer);
+        if (this.checked) {
+            logRefreshTimer = setInterval(function () {
+                if (!document.hidden) {
+                    loadLog(true);
+                }
+            }, 5000);
+        }
+    });
+
+    loadLog(true);
+
+    // --- PERFORMANCE PROFILER ---
+
+    $('#profiler-toggle').on('click', function () {
+        var $button = $(this);
+        $button.prop('disabled', true);
+
+        $.ajax({
+            url: debugTroubleshoot.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'debug_troubleshoot_profiler_toggle',
+                nonce: debugTroubleshoot.nonce
+            },
+            success: function (response) {
+                if (response.success) {
+                    showAlert(debugTroubleshoot.alert_title_success, response.data.message);
+                    setTimeout(function () { location.reload(); }, 1200);
+                } else {
+                    showAlert(debugTroubleshoot.alert_title_error, response.data.message, 'error');
+                    $button.prop('disabled', false);
+                }
+            },
+            error: function () {
+                showAlert(debugTroubleshoot.alert_title_error, i18n.ajax_error, 'error');
                 $button.prop('disabled', false);
             }
+        });
+    });
+
+    $('#profiler-clear').on('click', function () {
+        showConfirm(i18n.confirm_title, i18n.confirm_clear_profiles, function () {
+            $.ajax({
+                url: debugTroubleshoot.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'debug_troubleshoot_profiler_clear',
+                    nonce: debugTroubleshoot.nonce
+                },
+                success: function (response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        showAlert(debugTroubleshoot.alert_title_error, response.data.message, 'error');
+                    }
+                },
+                error: function () {
+                    showAlert(debugTroubleshoot.alert_title_error, i18n.ajax_error, 'error');
+                }
+            });
         });
     });
 
@@ -428,7 +741,16 @@ jQuery(document).ready(function ($) {
     });
 
     // --- TABS NAVIGATION ---
-    var activeTab = localStorage.getItem('dbgtbl_active_tab') || 'general';
+    var activeTab = 'general';
+    try {
+        activeTab = localStorage.getItem('dbgtbl_active_tab') || 'general';
+    } catch (e) {}
+
+    // A URL hash (e.g. the admin bar link to #performance) takes precedence.
+    var hashTab = window.location.hash.replace(/^#(tab-)?/, '');
+    if (hashTab && $('.dbgtbl-nav-tabs .nav-tab[data-tab="' + hashTab + '"]').length) {
+        activeTab = hashTab;
+    }
     
     // If a conflict check is active, force active tab to detective
     if (debugTroubleshoot.current_state && debugTroubleshoot.current_state.detective && debugTroubleshoot.current_state.detective.status !== 'inactive') {
@@ -450,7 +772,9 @@ jQuery(document).ready(function ($) {
         $('.dbgtbl-tab-content').addClass('hidden');
         $('#tab-content-' + tabName).removeClass('hidden');
         
-        localStorage.setItem('dbgtbl_active_tab', tabName);
+        try {
+            localStorage.setItem('dbgtbl_active_tab', tabName);
+        } catch (e) {}
     }
 
     // --- CONFLICT CHECKER ---
@@ -482,12 +806,12 @@ jQuery(document).ready(function ($) {
                     }, 1000);
                 } else {
                     showAlert(debugTroubleshoot.alert_title_error, response.data.message, 'error');
-                    $btn.prop('disabled', false).html('<span class="dashicons dashicons-search" style="margin-top: 4px; margin-right: 4px;"></span>Start Conflict Check');
+                    $btn.prop('disabled', false).html('<span class="dashicons dashicons-search"></span>Start Conflict Check');
                 }
             },
             error: function () {
                 showAlert(debugTroubleshoot.alert_title_error, 'An AJAX error occurred while starting the conflict check.', 'error');
-                $btn.prop('disabled', false).html('<span class="dashicons dashicons-search" style="margin-top: 4px; margin-right: 4px;"></span>Start Conflict Check');
+                $btn.prop('disabled', false).html('<span class="dashicons dashicons-search"></span>Start Conflict Check');
             }
         });
     });
@@ -580,12 +904,12 @@ jQuery(document).ready(function ($) {
                     }, 1000);
                 } else {
                     showAlert(debugTroubleshoot.alert_title_error, response.data.message, 'error');
-                    $btn.prop('disabled', false).html('<span class="dashicons dashicons-dismiss" style="margin-top: 2px;"></span>Deactivate Plugin Globally');
+                    $btn.prop('disabled', false).html('<span class="dashicons dashicons-dismiss"></span>Deactivate Plugin Globally');
                 }
             },
             error: function () {
                 showAlert(debugTroubleshoot.alert_title_error, 'An AJAX error occurred while deactivating the plugin.', 'error');
-                $btn.prop('disabled', false).html('<span class="dashicons dashicons-dismiss" style="margin-top: 2px;"></span>Deactivate Plugin Globally');
+                $btn.prop('disabled', false).html('<span class="dashicons dashicons-dismiss"></span>Deactivate Plugin Globally');
             }
         });
     });

@@ -4,12 +4,12 @@ Tags: debug, troubleshoot, php info, developer, compatibility
 Requires at least: 5.0
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 1.5.1
+Stable tag: 1.6.0
 License: GPL-2.0+
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 Donate link: https://paypal.me/jhimross28
 
-A WordPress plugin for debugging & troubleshooting. Safely simulate plugin deactivation, theme switching, and WP_DEBUG.
+Debug and troubleshoot WordPress safely: simulate plugin and theme changes, log and group errors, and find what slows your pages down.
 
 == Description ==
 
@@ -21,10 +21,13 @@ The "Debugger & Troubleshooter" plugin provides essential tools for WordPress si
     * **Simulate Plugin Deactivation:** Selectively "deactivate" plugins. The plugin's assets and code will be disabled for your session only.
     * **Simulate Theme Switching:** Preview any installed theme, while the public-facing site continues to use the active theme.
 * **User Role Simulator:** View your site as any other user or role (e.g., Subscriber, Editor) to test permissions and content visibility. This is session-based and includes a safe "Exit" button in the Admin Bar.
-* **Live Debugging:** Safely enable `WP_DEBUG` with a single click from the admin dashboard. Errors are logged to `debug.log` without being displayed on the site, and you can view the log file directly in the plugin's interface.
+* **Live Debugging:** Start logging PHP errors, warnings, notices and WordPress deprecation notices with a single click, without editing `wp-config.php`. Errors are logged without being displayed on the site.
+* **Smart Log Viewer:** Repeated errors are grouped with a count, filterable by level (Fatal, Warning, Notice, Deprecated, Database) and by source, and searchable. Every entry shows which plugin or theme caused it, even when the error is thrown inside WordPress core (identified from the stack trace). Includes auto-refresh, download and clear.
+* **Performance Profiler:** See why a page is slow. For your own requests only, it records load time, memory, a hook timeline, database query time per plugin, slow and duplicate queries, external HTTP requests and per-plugin load time. A live summary appears in the admin bar.
 * **Comprehensive Site Information:** Get a quick, organized overview of your WordPress environment in collapsible cards. This includes detailed PHP, Database, and Server information, a full list of all themes and plugins with their status, and important WordPress constants.
 * **Copy to Clipboard:** A one-click button allows you to copy all the site information, making it incredibly easy to share with support forums or developers.
-* **PHP Compatibility Checker:** Scan all installed plugins for deprecated functions and syntax that may break when upgrading PHP. Test against any target version from PHP 7.4 through the latest release (8.5). Results displayed in a responsive card layout with clear warnings and incompatibility counts.
+* **SMTP / Mail Debugger:** Send a test email and see the exact error if delivery fails.
+* **PHP Compatibility Checker:** Scan WordPress core, your active theme and active plugins for deprecated functions and syntax that may break when upgrading PHP. Results displayed in a responsive card layout with clear warnings and incompatibility counts.
 * **Conflict Checker:** Systematically identify plugin conflicts through a binary search process. Narrow down suspect plugins by answering whether each group resolves the issue, all within a safe session-based mode.
 * **Safe Debugging & Cache Bypassing:** All troubleshooting actions are session-based. The plugin automatically attempts to bypass caching when Troubleshooting Mode is active, ensuring your changes are reflected instantly.
 * **User-Friendly Interface:** An intuitive dashboard interface makes it easy to access all features.
@@ -44,8 +47,8 @@ This plugin is an invaluable tool for developers, site administrators, and anyon
 
 **Manual Installation (if needed):**
 
-1.  **Extract** the `debug-troubleshooter.zip` file.
-2.  **Upload** the `debug-troubleshooter` folder to the `/wp-content/plugins/` directory via FTP or your hosting's file manager.
+1.  **Extract** the `debugger-troubleshooter.zip` file.
+2.  **Upload** the `debugger-troubleshooter` folder to the `/wp-content/plugins/` directory via FTP or your hosting's file manager.
 3.  **Activate** the plugin through the 'Plugins' menu in WordPress.
 
 == Usage ==
@@ -66,19 +69,27 @@ Safely view your site as another user or role (e.g., "Subscriber" or "Editor") w
 
 ### 4. Live Debugging
 
-This section allows you to safely manage WordPress's debugging features.
+Log errors without editing `wp-config.php`.
 
-* **Enable Live Debug:** Click this button to programmatically enable `WP_DEBUG` and `WP_DEBUG_LOG`, while keeping `WP_DEBUG_DISPLAY` off. This logs errors to `wp-content/debug.log` without showing them to visitors.
-* **Debug Log Viewer:** A text area displays the contents of your `debug.log` file, allowing you to see errors as they are generated.
-* **Clear Log:** Safely clear the `debug.log` file with a click.
+* **Enable Live Debug:** Click this button to start logging PHP errors, warnings, notices and WordPress deprecation notices to `wp-content/debug.log` (or your custom `WP_DEBUG_LOG` path). Errors are never shown to visitors.
+* **Smart Log Viewer:** Errors are grouped, colour-coded by level and attributed to the plugin or theme responsible. Click an entry to see the full message and stack trace. Use the level buttons, source dropdown and search box to narrow things down, or switch to the Raw view to see the log as-is. Turn on Auto-refresh to watch new errors arrive.
+* **Download / Clear Log:** Save a copy of the full log, or clear it with a click.
 
-### 5. PHP Compatibility Checker
+### 5. SMTP / Mail Debugger
 
-Scan all installed plugins for deprecated PHP functions and syntax incompatible with your target PHP version. Select a target version and click "Start Scan" to receive a per-plugin compatibility report with clear warnings and incompatibility counts.
+Send a test email to check your site's mail configuration. If sending fails, the exact error is shown.
 
 ### 6. Conflict Checker
 
 If you are experiencing an issue on your site, use the Conflict Checker to identify the culprit plugin. The plugin systematically deactivates groups of plugins using your session-based Troubleshooting Mode, asking whether the issue persists after each step. Once the culprit is found, you can deactivate it with one click.
+
+### 7. PHP Compatibility Checker
+
+Check whether WordPress core, your active theme and your active plugins are ready for a newer PHP version. Select a target version and click "Run Compatibility Check" to get a report for each item, with clear warnings and incompatibility counts.
+
+### 8. Performance Profiler
+
+Open the **Performance** tab and click **Enable Profiler**. For the next 24 hours, every request you make (front end, admin, AJAX and REST) is profiled. Visitors and other users are not affected. A summary (time, queries, memory) appears in the admin bar; click it to open the full report with the timeline, query time per plugin, slowest and duplicate queries, external HTTP requests and plugin load times.
 
 
 == Frequently Asked Questions ==
@@ -90,10 +101,13 @@ A: Troubleshooting Mode uses a browser cookie specific to your session. When ena
 A: Yes. When Troubleshooting Mode is active, the plugin defines the `DONOTCACHEPAGE` constant, which instructs most caching plugins and hosting environments to bypass the cache for your session.
 
 **Q: How does Live Debugging work without editing wp-config.php?**
-A: The plugin uses the `plugins_loaded` hook to define the `WP_DEBUG` constants programmatically. This happens very early in the WordPress loading sequence, effectively enabling debug mode for all requests while the feature is turned on.
+A: WordPress defines `WP_DEBUG` itself before any plugin loads, so no plugin can change that constant. Instead, Live Debug applies the equivalent PHP settings directly (full error reporting, logging to `wp-content/debug.log` or your custom `WP_DEBUG_LOG` path, errors never displayed) and also logs WordPress's own deprecation and "doing it wrong" notices. A small must-use plugin loads these settings before other plugins so their errors are captured too. It is removed automatically when Live Debug is turned off.
+
+**Q: Does the Performance Profiler slow down my site?**
+A: Only for you. Profiling runs solely on requests made by the administrator who enabled it, and switches itself off after 24 hours. Visitors and other users are never profiled.
 
 **Q: How does the PHP Compatibility Checker work?**
-A: The checker scans each plugin's PHP files for deprecated functions, incompatible syntax, and other patterns known to break in newer PHP versions, then reports which plugins are compatible, have warnings, or are incompatible.
+A: The checker reads the "Requires PHP" header of WordPress core, your active theme and active plugins, then scans their PHP files for deprecated functions, incompatible syntax, and other patterns known to break in newer PHP versions, then reports which plugins are compatible, have warnings, or are incompatible.
 
 **Q: How does the Conflict Checker work?**
 A: The Conflict Checker automates plugin conflict identification using a binary search — it splits plugins into groups and asks you whether the issue persists after each test, quickly narrowing down the exact culprit.
@@ -109,25 +123,24 @@ A: The Conflict Checker automates plugin conflict identification using a binary 
 
 == Changelog ==
 
-= 1.5.1 - 2026-09-16 =
-* **Security:** Troubleshooting and user simulation sessions are now bound to the administrator who created them, and are only honored for that admin's authenticated browser session.
-* **Security:** Shortened troubleshooting/simulation cookie lifetime from 24h to 6h and aligned session garbage collection accordingly.
-* **Fix:** Translations now actually load (`load_plugin_textdomain`) — added a `languages/` directory and template with the plugin text domain.
-* **Fix:** Added activation/deactivation hooks; deactivation now removes the leftover must-use plugin drop-in.
-* **Fix:** Simulated theme switching now correctly resolves child-theme parents.
-* **Fix:** Debug log clearing no longer depends on the WP_Filesystem API, preventing silent failures on servers requiring FTP credentials.
-* **Fix:** User simulation AJAX now reads POST data only.
-* **Fix:** Inactive plugin count no longer double-counts network-active plugins on multisite.
-* **Fix:** Added "Requires at least" and "Requires PHP" headers to the main plugin file.
-* **Fix:** Corrected "Tested up to" to WordPress 7.1.
-* **Enhancement:** PHP Compatibility Checker now scans against the latest PHP release (8.5); the plugin is compatible with PHP 7.4 through 8.5.
-* **Security:** Added automatic garbage collection for expired troubleshooting and simulation sessions.
-* **Security:** MU plugin now verifies cookie name and option name consistency on each request.
-* **Security:** Added `uninstall.php` to clean up all plugin options and MU plugin on deletion.
-* **Security:** Fixed user simulation capability check to prevent simulated users from starting new simulations.
-* **Security:** Converted exit simulation from GET request to POST AJAX for safer state changes.
-* **Enhancement:** Moved inline styles to CSS classes for better maintainability.
-* **Enhancement:** Fixed duplicate comment block in plugin constructor.
+= 1.6.0 - 2026-11-10 =
+* **Fix (Important):** Live Debug now actually logs errors. Previously it tried to define `WP_DEBUG` after WordPress had already defined it, so it had no effect on most sites and wrongly reported that `WP_DEBUG` was "already defined as false in wp-config.php".
+* **Feature:** Live Debug also logs WordPress deprecation and `_doing_it_wrong()` notices, with the file and line of the plugin or theme responsible.
+* **Feature:** Smart Log Viewer: grouped entries with counts, level and source filters, search, plugin/theme attribution (including from stack traces), expandable stack traces, auto-refresh, download and raw view.
+* **Feature:** Performance Profiler: per-request load time, memory, hook timeline, query time by plugin, slow and duplicate queries, external HTTP requests (query strings redacted) and per-plugin load time, plus a live admin bar summary.
+* **Fix:** The log viewer and Clear Log now use the log file actually in use (a custom `WP_DEBUG_LOG` path or PHP's `error_log` setting) instead of always assuming `wp-content/debug.log`.
+* **Fix:** Reading the log no longer scans the whole file; only the last 2 MB is read, keeping large logs fast.
+* **Enhancement:** Tabs can be opened directly via URL hash (e.g. `#performance`).
+
+= 1.5.1 - 2026-10-20 =
+* **Security Fix (Critical):** Fixed a privilege escalation in the User Role Simulator. A simulated low-privilege user could start another simulation for any account, including an administrator. Starting a simulation now requires `manage_options`, the target user is validated, and tokens are bound to the administrator who created them.
+* **Security Fix (High):** Simulation and troubleshooting tokens now expire after 24 hours, are bound to the creating user, and are cleaned up on uninstall. The "Exit Simulation" action now uses a dedicated nonce.
+* **Security Fix (Medium):** The simulated theme is now validated against installed themes before Troubleshooting Mode applies it.
+* **Compatibility:** Tested up to WordPress 7.1.
+* **Fix:** Updated the asset cache-busting version and removed the unused `Domain Path` header.
+* **Fix:** Live Debug now warns when `WP_DEBUG` is already defined in `wp-config.php` and cannot be overridden.
+* **Fix:** Hardened filesystem handling when installing the troubleshooting MU plugin and clearing the debug log.
+* **Fix:** Added translator comments and ordered placeholders; replaced direct filesystem calls with WordPress APIs.
 
 = 1.5.0 - 2026-06-04 =
 * **Feature:** Added Plugin Compatibility Checker to scan and report PHP version compatibility across all installed plugins.
@@ -189,8 +202,11 @@ A: The Conflict Checker automates plugin conflict identification using a binary 
 
 == Upgrade Notice ==
 
+= 1.6.0 =
+Fixes Live Debug so it actually logs errors, and adds a Smart Log Viewer and a Performance Profiler. If you previously enabled Live Debug, it will now start logging; disable it if you no longer need it.
+
 = 1.5.1 =
-Security and maintenance update. Sessions are now owner-bound, cookies shortened, translations enabled, PHP Compatibility Checker supports the latest PHP (8.5), and several robustness fixes shipped.
+Security update. Fixes a privilege escalation in the User Role Simulator and hardens simulation and troubleshooting tokens. Update immediately.
 
 = 1.5.0 =
 This update introduces the Plugin Compatibility Checker and Conflict Checker features, plus UI improvements and bug fixes.
