@@ -75,7 +75,14 @@ class DBGTBL_Log_Viewer
 	 */
 	public static function read_tail($path, $bytes = self::TAIL_BYTES)
 	{
-		$size = filesize($path);
+		if (!file_exists($path) || !is_readable($path)) {
+			return array('', false);
+		}
+
+		$size = @filesize($path);
+		if (false === $size || 0 === $size) {
+			return array('', false);
+		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Streaming read of a potentially large log; WP_Filesystem would load the whole file.
 		$handle = fopen($path, 'rb');
@@ -426,7 +433,9 @@ class DBGTBL_Log_Viewer
 			wp_die(esc_html__('The log file does not exist or is not readable.', 'debugger-troubleshooter'), '', array('response' => 404));
 		}
 
-		$filename = sanitize_file_name(wp_parse_url(home_url(), PHP_URL_HOST) . '-' . gmdate('Y-m-d-His') . '-' . basename($path));
+		$host = wp_parse_url(home_url(), PHP_URL_HOST);
+		$host = is_string($host) && '' !== $host ? $host : 'site';
+		$filename = sanitize_file_name($host . '-' . gmdate('Y-m-d-His') . '-' . basename($path));
 
 		nocache_headers();
 		header('Content-Type: text/plain; charset=utf-8');

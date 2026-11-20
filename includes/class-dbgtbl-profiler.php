@@ -158,7 +158,11 @@ class DBGTBL_Profiler
 			return;
 		}
 
-		$user_id = (int) wp_validate_auth_cookie('', 'logged_in');
+		if (!function_exists('wp_validate_auth_cookie') && defined('ABSPATH') && defined('WPINC') && file_exists(ABSPATH . WPINC . '/pluggable.php')) {
+			require_once ABSPATH . WPINC . '/pluggable.php';
+		}
+
+		$user_id = function_exists('wp_validate_auth_cookie') ? (int) wp_validate_auth_cookie('', 'logged_in') : (function_exists('get_current_user_id') ? (int) get_current_user_id() : 0);
 		if (!$user_id || !self::get_expiry($user_id)) {
 			return;
 		}
@@ -179,7 +183,7 @@ class DBGTBL_Profiler
 		$this->user_id = $user_id;
 
 		global $timestart;
-		$this->start = isset($_SERVER['REQUEST_TIME_FLOAT']) ? (float) $_SERVER['REQUEST_TIME_FLOAT'] : (float) $timestart;
+		$this->start = isset($_SERVER['REQUEST_TIME_FLOAT']) ? (float) $_SERVER['REQUEST_TIME_FLOAT'] : (!empty($timestart) ? (float) $timestart : microtime(true));
 		$this->milestones['plugins_loaded'] = microtime(true) - $this->start;
 
 		if (!defined('SAVEQUERIES')) {
@@ -735,7 +739,7 @@ class DBGTBL_Profiler
 		<div class="debug-troubleshooter-section standalone-section full-width-section">
 			<div class="section-header">
 				<h2><?php esc_html_e('Performance Profiler', 'debugger-troubleshooter'); ?></h2>
-				<button id="profiler-toggle" class="button button-large <?php echo $expiry ? 'button-danger' : 'button-primary'; ?>" data-enabled="<?php echo $expiry ? '1' : '0'; ?>">
+				<button type="button" id="profiler-toggle" class="button button-large <?php echo $expiry ? 'button-danger' : 'button-primary'; ?>" data-enabled="<?php echo $expiry ? '1' : '0'; ?>">
 					<?php echo $expiry ? esc_html__('Disable Profiler', 'debugger-troubleshooter') : esc_html__('Enable Profiler', 'debugger-troubleshooter'); ?>
 				</button>
 			</div>
@@ -802,8 +806,14 @@ class DBGTBL_Profiler
 	 */
 	private function render_profile($p, $type_labels, $open)
 	{
-		$q = $p['queries'];
-		$total = max(1, (float) $p['total_ms']);
+		$q = !empty($p['queries']) && is_array($p['queries']) ? $p['queries'] : array();
+		$q_count = isset($q['count']) ? (int) $q['count'] : 0;
+		$q_time = isset($q['time']) ? (float) $q['time'] : 0.0;
+		$total_ms = isset($p['total_ms']) ? (float) $p['total_ms'] : 0.0;
+		$http_ms = isset($p['http_ms']) ? (float) $p['http_ms'] : 0.0;
+		$http_count = isset($p['http_count']) ? (int) $p['http_count'] : 0;
+		$memory = isset($p['memory']) ? (int) $p['memory'] : 0;
+		$total = max(1, $total_ms);
 		?>
 		<details class="dbgtbl-profile" <?php echo $open ? 'open' : ''; ?>>
 			<summary class="dbgtbl-profile-row">
@@ -818,10 +828,10 @@ class DBGTBL_Profiler
 						}
 					?></small>
 				</span>
-				<span class="<?php echo esc_attr(self::rating($p['total_ms'], 800, 2000)); ?>"><strong><?php echo esc_html(self::ms($p['total_ms'])); ?></strong></span>
-				<span class="<?php echo esc_attr(self::rating($q['count'], 100, 300)); ?>"><?php echo esc_html(number_format_i18n($q['count'])); ?> <small>(<?php echo esc_html(self::ms($q['time'])); ?>)</small></span>
-				<span class="<?php echo esc_attr(self::rating($p['http_ms'], 300, 1000)); ?>"><?php echo esc_html(number_format_i18n($p['http_count'])); ?> <small>(<?php echo esc_html(self::ms($p['http_ms'])); ?>)</small></span>
-				<span><?php echo esc_html(size_format($p['memory'])); ?></span>
+				<span data-label="<?php esc_attr_e('Time', 'debugger-troubleshooter'); ?>" class="<?php echo esc_attr(self::rating($total_ms, 800, 2000)); ?>"><strong><?php echo esc_html(self::ms($total_ms)); ?></strong></span>
+				<span data-label="<?php esc_attr_e('Queries', 'debugger-troubleshooter'); ?>" class="<?php echo esc_attr(self::rating($q_count, 100, 300)); ?>"><?php echo esc_html(number_format_i18n($q_count)); ?> <small>(<?php echo esc_html(self::ms($q_time)); ?>)</small></span>
+				<span data-label="<?php esc_attr_e('HTTP', 'debugger-troubleshooter'); ?>" class="<?php echo esc_attr(self::rating($http_ms, 300, 1000)); ?>"><?php echo esc_html(number_format_i18n($http_count)); ?> <small>(<?php echo esc_html(self::ms($http_ms)); ?>)</small></span>
+				<span data-label="<?php esc_attr_e('Memory', 'debugger-troubleshooter'); ?>"><?php echo esc_html(size_format($memory)); ?></span>
 			</summary>
 
 			<div class="dbgtbl-profile-body">
@@ -856,6 +866,7 @@ class DBGTBL_Profiler
 					<?php if (!empty($q['by_component'])) : ?>
 						<div>
 							<h4><?php esc_html_e('Query time by plugin / theme', 'debugger-troubleshooter'); ?></h4>
+							<div class="dbgtbl-table-scroll">
 							<table class="widefat striped dbgtbl-table">
 								<thead><tr><th><?php esc_html_e('Component', 'debugger-troubleshooter'); ?></th><th><?php esc_html_e('Queries', 'debugger-troubleshooter'); ?></th><th><?php esc_html_e('Time', 'debugger-troubleshooter'); ?></th></tr></thead>
 								<tbody>
@@ -871,6 +882,7 @@ class DBGTBL_Profiler
 									<?php endforeach; ?>
 								</tbody>
 							</table>
+							</div>
 						</div>
 					<?php elseif (empty($p['queries_available'])) : ?>
 						<div><p class="description"><?php esc_html_e('Query details unavailable (SAVEQUERIES is disabled).', 'debugger-troubleshooter'); ?></p></div>
@@ -879,6 +891,7 @@ class DBGTBL_Profiler
 					<?php if (!empty($p['plugin_load'])) : ?>
 						<div>
 							<h4><?php esc_html_e('Plugin load time', 'debugger-troubleshooter'); ?></h4>
+							<div class="dbgtbl-table-scroll">
 							<table class="widefat striped dbgtbl-table">
 								<thead><tr><th><?php esc_html_e('Plugin', 'debugger-troubleshooter'); ?></th><th><?php esc_html_e('Load time', 'debugger-troubleshooter'); ?></th></tr></thead>
 								<tbody>
@@ -893,6 +906,7 @@ class DBGTBL_Profiler
 									<?php endforeach; ?>
 								</tbody>
 							</table>
+							</div>
 							<p class="description">
 								<?php
 								echo 'plugin' === $p['plugin_load_source']
@@ -927,6 +941,7 @@ class DBGTBL_Profiler
 
 				<?php if (!empty($p['http'])) : ?>
 					<h4><?php esc_html_e('External HTTP requests', 'debugger-troubleshooter'); ?></h4>
+					<div class="dbgtbl-table-scroll">
 					<table class="widefat striped dbgtbl-table">
 						<thead><tr><th><?php esc_html_e('URL', 'debugger-troubleshooter'); ?></th><th><?php esc_html_e('Status', 'debugger-troubleshooter'); ?></th><th><?php esc_html_e('Time', 'debugger-troubleshooter'); ?></th><th><?php esc_html_e('Component', 'debugger-troubleshooter'); ?></th></tr></thead>
 						<tbody>
@@ -940,6 +955,7 @@ class DBGTBL_Profiler
 							<?php endforeach; ?>
 						</tbody>
 					</table>
+					</div>
 				<?php endif; ?>
 			</div>
 		</details>
@@ -955,6 +971,7 @@ class DBGTBL_Profiler
 	private function render_query_table($rows, $show_count)
 	{
 		?>
+		<div class="dbgtbl-table-scroll">
 		<table class="widefat striped dbgtbl-table dbgtbl-query-table">
 			<thead>
 				<tr>
@@ -975,6 +992,7 @@ class DBGTBL_Profiler
 				<?php endforeach; ?>
 			</tbody>
 		</table>
+		</div>
 		<?php
 	}
 }

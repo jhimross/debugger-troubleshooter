@@ -4,7 +4,7 @@ Tags: debug, troubleshoot, php info, developer, compatibility
 Requires at least: 5.0
 Requires PHP: 7.4
 Tested up to: 7.1
-Stable tag: 1.6.0
+Stable tag: 1.6.1
 License: GPL-2.0+
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 Donate link: https://paypal.me/jhimross28
@@ -107,7 +107,7 @@ A: WordPress defines `WP_DEBUG` itself before any plugin loads, so no plugin can
 A: Only for you. Profiling runs solely on requests made by the administrator who enabled it, and switches itself off after 24 hours. Visitors and other users are never profiled.
 
 **Q: How does the PHP Compatibility Checker work?**
-A: The checker reads the "Requires PHP" header of WordPress core, your active theme and active plugins, then scans their PHP files for deprecated functions, incompatible syntax, and other patterns known to break in newer PHP versions, then reports which plugins are compatible, have warnings, or are incompatible.
+A: The checker reads the "Requires PHP" header of WordPress core, your active theme and active plugins, then reads their PHP code with PHP's own tokenizer to find removed or deprecated functions and incompatible syntax. Code in comments and strings, and methods with the same name as a removed function, are ignored. It then reports which plugins are compatible, have warnings, or are incompatible.
 
 **Q: How does the Conflict Checker work?**
 A: The Conflict Checker automates plugin conflict identification using a binary search — it splits plugins into groups and asks you whether the issue persists after each test, quickly narrowing down the exact culprit.
@@ -122,6 +122,15 @@ A: The Conflict Checker automates plugin conflict identification using a binary 
 6.  The PHP Compatibility Checker and Conflict Checker tabs.
 
 == Changelog ==
+
+= 1.6.1 - 2026-11-20 =
+* **Fix (Important):** "Deactivate Plugin Globally" in the Conflict Checker no longer deactivates every plugin that was switched off in the last step of the check. It now deactivates only the identified plugin, and it also works when your last answer was "fixed" (previously it did nothing in that case). Activating or deactivating plugins from the Plugins screen while Troubleshooting Mode is on now changes only that plugin on the live site, instead of saving your simulated plugin list for everyone.
+* **Fix:** PHP Compatibility Checker no longer reports false matches in comments, strings and heredocs, or method calls such as `$collection->each()`. It now reads PHP code with PHP's own tokenizer instead of text patterns.
+* **Enhancement:** PHP Compatibility Checker scans every PHP file in a plugin or theme (previously only the first 40), skips `node_modules`, and shows how many files were scanned. It also detects `money_format()`, `fgetss()`, `strftime()` and other removed or deprecated functions.
+* **Fix:** The WordPress core compatibility check now compares versions correctly (WordPress 6.10 was treated as older than 6.4) and reports the most serious problem first.
+* **Fix:** Site Information on SQLite sites (WordPress Studio, Playground) shows the real SQLite version and database file instead of an emulated MySQL version, and no longer relies on `DB_NAME` and `DB_HOST`, which may not be defined.
+* **Fix:** The "Go to Debugger & Troubleshooter page" link in the Troubleshooting Mode notice pointed to the wrong page.
+* **Developer:** The main plugin file is split into one class per feature under `includes/`, and automated tests were added for the compatibility scanner, Conflict Checker and log parser. No settings, data or behaviour change for users.
 
 = 1.6.0 - 2026-11-10 =
 * **Fix (Important):** Live Debug now actually logs errors. Previously it tried to define `WP_DEBUG` after WordPress had already defined it, so it had no effect on most sites and wrongly reported that `WP_DEBUG` was "already defined as false in wp-config.php".
@@ -201,6 +210,9 @@ A: The Conflict Checker automates plugin conflict identification using a binary 
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.6.1 =
+Important fix: "Deactivate Plugin Globally" in the Conflict Checker could deactivate other plugins too. Also a more accurate PHP Compatibility Checker with far fewer false warnings, correct database details on SQLite sites, and internal code cleanup.
 
 = 1.6.0 =
 Fixes Live Debug so it actually logs errors, and adds a Smart Log Viewer and a Performance Profiler. If you previously enabled Live Debug, it will now start logging; disable it if you no longer need it.

@@ -7,7 +7,7 @@ A powerful, session-based WordPress plugin for safe debugging and comprehensive 
 **Requires at least:** 5.0
 **Requires PHP:** 7.4
 **Tested up to:** 7.1
-**Stable tag:** 1.6.0
+**Stable tag:** 1.6.1
 **License:** GPL-2.0+
 **License URI:** http://www.gnu.org/licenses/gpl-2.0.txt
 **Donate link:** https://paypal.me/jhimross28
@@ -120,7 +120,7 @@ A: WordPress defines `WP_DEBUG` itself before any plugin loads, so no plugin can
 A: Only for you. Profiling runs solely on requests made by the administrator who enabled it, and switches itself off after 24 hours. Visitors and other users are never profiled.
 
 **Q: How does the PHP Compatibility Checker work?**
-A: The checker reads the "Requires PHP" header of WordPress core, your active theme and active plugins, then scans their PHP files for removed or deprecated functions (like `create_function()`, `each()`, `utf8_encode()`), incompatible syntax (curly brace offset access, `${var}` interpolation) and other patterns known to break in newer PHP versions. It reports which plugins are compatible, have warnings, or are incompatible with your selected target version.
+A: The checker reads the "Requires PHP" header of WordPress core, your active theme and active plugins, then reads their PHP code with PHP's own tokenizer to find removed or deprecated functions (like `create_function()`, `each()`, `utf8_encode()`), incompatible syntax (curly brace offset access, `${var}` interpolation) and other patterns known to break in newer PHP versions. Code in comments and strings, and methods with the same name as a removed function, are ignored. It reports which plugins are compatible, have warnings, or are incompatible with your selected target version.
 
 **Q: How does the Conflict Checker differ from Troubleshooting Mode?**
 A: Troubleshooting Mode manually toggles plugins and themes for testing. The Conflict Checker automates the process using a binary search algorithm — it splits plugins into groups and asks you whether the issue is present after each test, quickly narrowing down the exact culprit.
@@ -154,7 +154,29 @@ A: Troubleshooting Mode manually toggles plugins and themes for testing. The Con
 
 ---
 
+## 🧪 Development
+
+Each feature lives in its own class under `includes/` (for example `class-dbgtbl-conflict-checker.php` or `class-dbgtbl-compat-scanner.php`). `debug-troubleshooter.php` only loads them and renders the admin page.
+
+Run the tests from the site root. They run inside WordPress and need no PHPUnit or Composer:
+
+```bash
+wp eval-file wp-content/plugins/debugger-troubleshooter/tests/run.php
+# WordPress Studio: studio wp eval-file wp-content/plugins/debugger-troubleshooter/tests/run.php
+```
+
+The `tests/` folder is listed in `.distignore` and is not part of the WordPress.org release.
+
 ## Changelog
+
+### 1.6.1 - 2026-11-20
+* **Fix (Important):** "Deactivate Plugin Globally" in the Conflict Checker no longer deactivates every plugin that was switched off in the last step of the check. It now deactivates only the identified plugin, and it also works when your last answer was "fixed" (previously it did nothing in that case). Activating or deactivating plugins from the Plugins screen while Troubleshooting Mode is on now changes only that plugin on the live site, instead of saving your simulated plugin list for everyone.
+* **Fix:** PHP Compatibility Checker no longer reports false matches in comments, strings and heredocs, or method calls such as `$collection->each()`. It now reads PHP code with PHP's own tokenizer instead of text patterns.
+* **Enhancement:** PHP Compatibility Checker scans every PHP file in a plugin or theme (previously only the first 40), skips `node_modules`, and shows how many files were scanned. It also detects `money_format()`, `fgetss()`, `strftime()` and other removed or deprecated functions.
+* **Fix:** The WordPress core compatibility check now compares versions correctly (WordPress 6.10 was treated as older than 6.4) and reports the most serious problem first.
+* **Fix:** Site Information on SQLite sites (WordPress Studio, Playground) shows the real SQLite version and database file instead of an emulated MySQL version, and no longer relies on `DB_NAME` and `DB_HOST`, which may not be defined.
+* **Fix:** The "Go to Debugger & Troubleshooter page" link in the Troubleshooting Mode notice pointed to the wrong page.
+* **Developer:** The main plugin file is split into one class per feature under `includes/`, and automated tests were added for the compatibility scanner, Conflict Checker and log parser. No settings, data or behaviour change for users.
 
 ### 1.6.0 - 2026-11-10
 * **Fix (Important):** Live Debug now actually logs errors. It previously tried to define `WP_DEBUG` after WordPress had already defined it, so it had no effect on most sites.

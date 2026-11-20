@@ -2,8 +2,31 @@ jQuery(document).ready(function ($) {
     var isTroubleshooting = debugTroubleshoot.is_troubleshooting;
     var troubleshootState = debugTroubleshoot.current_state;
     var isDebugMode = debugTroubleshoot.is_debug_mode;
+    var i18n = debugTroubleshoot.i18n || {};
 
     // --- MODALS ---
+
+    var lastFocusedElement = null;
+
+    // Opens a modal, remembers what had focus, and moves focus inside it.
+    function openModal($modal, $focusTarget) {
+        lastFocusedElement = document.activeElement;
+        $modal.removeClass('hidden');
+        window.setTimeout(function () {
+            if ($focusTarget && $focusTarget.length) {
+                $focusTarget.trigger('focus');
+            }
+        }, 0);
+    }
+
+    // Closes a modal and returns focus to the control that opened it.
+    function closeModal($modal) {
+        $modal.addClass('hidden');
+        if (lastFocusedElement && document.contains(lastFocusedElement) && lastFocusedElement.offsetParent !== null) {
+            $(lastFocusedElement).trigger('focus');
+        }
+        lastFocusedElement = null;
+    }
 
     // Show custom alert modal
     function showAlert(title, message, type = 'success') {
@@ -17,17 +40,64 @@ jQuery(document).ready(function ($) {
             $('#debug-troubleshoot-alert-title').css('color', '');
         }
 
-        modal.removeClass('hidden');
+        openModal(modal, $('#debug-troubleshoot-alert-close'));
     }
 
     // Close alert modal
     $('#debug-troubleshoot-alert-close').on('click', function () {
-        $('#debug-troubleshoot-alert-modal').addClass('hidden');
+        closeModal($('#debug-troubleshoot-alert-modal'));
     });
 
     // Close confirmation modal
     $('#debug-troubleshoot-confirm-cancel').on('click', function () {
-        $('#debug-troubleshoot-confirm-modal').addClass('hidden');
+        pendingConfirm = null;
+        closeModal($('#debug-troubleshoot-confirm-modal'));
+    });
+
+    // Escape closes whichever modal is open, and clicking the backdrop does too.
+    $(document).on('keydown', function (e) {
+        if (e.key !== 'Escape' && e.keyCode !== 27) {
+            return;
+        }
+        if (!$('#debug-troubleshoot-alert-modal').hasClass('hidden')) {
+            closeModal($('#debug-troubleshoot-alert-modal'));
+        } else if (!$('#debug-troubleshoot-confirm-modal').hasClass('hidden')) {
+            pendingConfirm = null;
+            closeModal($('#debug-troubleshoot-confirm-modal'));
+        }
+    });
+
+    $('#debug-troubleshoot-alert-modal').on('click', function (e) {
+        if (e.target === this) {
+            closeModal($(this));
+        }
+    });
+
+    $('#debug-troubleshoot-confirm-modal').on('click', function (e) {
+        if (e.target === this) {
+            pendingConfirm = null;
+            closeModal($(this));
+        }
+    });
+
+    // Keep Tab inside the open modal.
+    $('#debug-troubleshoot-alert-modal, #debug-troubleshoot-confirm-modal').on('keydown', function (e) {
+        if (e.key !== 'Tab') {
+            return;
+        }
+        var $focusable = $(this).find('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])').filter(':visible');
+        if (!$focusable.length) {
+            return;
+        }
+        var first = $focusable[0];
+        var last = $focusable[$focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
     });
 
 
@@ -111,21 +181,17 @@ jQuery(document).ready(function ($) {
         pendingConfirm = onConfirm;
         $('#debug-troubleshoot-confirm-title').text(title);
         $('#debug-troubleshoot-confirm-message').text(message);
-        $('#debug-troubleshoot-confirm-modal').removeClass('hidden');
+        openModal($('#debug-troubleshoot-confirm-modal'), $('#debug-troubleshoot-confirm-cancel'));
     }
 
     $('#debug-troubleshoot-confirm-ok').on('click', function () {
-        // Hide the confirm modal before running the action so a result alert is clickable.
-        $('#debug-troubleshoot-confirm-modal').addClass('hidden');
+        // Close the confirm modal before running the action so focus is clean and a result alert is clickable.
+        closeModal($('#debug-troubleshoot-confirm-modal'));
         var callback = pendingConfirm;
         pendingConfirm = null;
         if (typeof callback === 'function') {
             callback();
         }
-    });
-
-    $('#debug-troubleshoot-confirm-cancel').on('click', function () {
-        pendingConfirm = null;
     });
 
     // Handle Clear Log button
@@ -163,7 +229,6 @@ jQuery(document).ready(function ($) {
 
     // --- SMART LOG VIEWER ---
 
-    var i18n = debugTroubleshoot.i18n || {};
     var lastLogReport = null;
     var logFilter = { level: 'all', component: '', search: '' };
     var logView = 'grouped';
@@ -530,7 +595,14 @@ jQuery(document).ready(function ($) {
     // --- UI Toggles ---
 
     // Collapsible Site Info Cards
-    $('.card-collapsible-header').on('click', function () {
+    $('.card-collapsible-header').on('click keydown', function (e) {
+        if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') {
+            return;
+        }
+        if (e.type === 'keydown') {
+            e.preventDefault();
+        }
+
         var $header = $(this);
         var $content = $header.siblings('.card-collapsible-content');
 
@@ -541,6 +613,7 @@ jQuery(document).ready(function ($) {
 
         $content.slideToggle(200);
         $header.toggleClass('collapsed');
+        $header.attr('aria-expanded', $header.hasClass('collapsed') ? 'false' : 'true');
     });
 
     // Toggle for theme/plugin sub-lists
@@ -765,13 +838,45 @@ jQuery(document).ready(function ($) {
         switchTab(tabName);
     });
 
+    // Arrow keys / Home / End move between tabs.
+    $('.dbgtbl-nav-tabs').on('keydown', '.nav-tab', function (e) {
+        var $tabs = $('.dbgtbl-nav-tabs .nav-tab');
+        var index = $tabs.index(this);
+
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+            index = (index + 1) % $tabs.length;
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            index = (index - 1 + $tabs.length) % $tabs.length;
+        } else if (e.key === 'Home') {
+            index = 0;
+        } else if (e.key === 'End') {
+            index = $tabs.length - 1;
+        } else if (e.key === ' ' || e.key === 'Spacebar') {
+            e.preventDefault();
+            $(this).trigger('click');
+            return;
+        } else {
+            return;
+        }
+
+        e.preventDefault();
+        var $target = $tabs.eq(index);
+        switchTab($target.data('tab'));
+        $target.trigger('focus');
+    });
+
     function switchTab(tabName) {
-        $('.dbgtbl-nav-tabs .nav-tab').removeClass('nav-tab-active');
-        $('.dbgtbl-nav-tabs .nav-tab[data-tab="' + tabName + '"]').addClass('nav-tab-active');
-        
+        $('.dbgtbl-nav-tabs .nav-tab')
+            .removeClass('nav-tab-active')
+            .attr({ 'aria-selected': 'false', 'tabindex': '-1' });
+
+        $('.dbgtbl-nav-tabs .nav-tab[data-tab="' + tabName + '"]')
+            .addClass('nav-tab-active')
+            .attr({ 'aria-selected': 'true', 'tabindex': '0' });
+
         $('.dbgtbl-tab-content').addClass('hidden');
         $('#tab-content-' + tabName).removeClass('hidden');
-        
+
         try {
             localStorage.setItem('dbgtbl_active_tab', tabName);
         } catch (e) {}
@@ -899,7 +1004,9 @@ jQuery(document).ready(function ($) {
                 if (response.success) {
                     showAlert(debugTroubleshoot.alert_title_success, response.data.message);
                     setTimeout(function () {
-                        localStorage.setItem('dbgtbl_active_tab', 'general');
+                        try {
+                            localStorage.setItem('dbgtbl_active_tab', 'general');
+                        } catch (e) {}
                         location.reload();
                     }, 1000);
                 } else {
@@ -984,7 +1091,6 @@ jQuery(document).ready(function ($) {
                 $progressBar.css('width', '100%');
                 $progressPercent.text('100%');
                 $btn.prop('disabled', false);
-                showAlert(debugTroubleshoot.alert_title_success, 'PHP Compatibility Scan completed successfully!');
                 return;
             }
 
@@ -1068,6 +1174,7 @@ jQuery(document).ready(function ($) {
                         '<div class="compat-card-meta">' +
                             '<span><strong>Requires:</strong> ' + minRequired + '</span>' +
                             (data.details && data.details.length > 0 ? '<span class="compat-issue-count">' + data.details.length + ' issue' + (data.details.length !== 1 ? 's' : '') + ' found</span>' : '') +
+                            (data.scan_note ? '<span class="compat-scan-note">' + escapeHtml(data.scan_note) + '</span>' : '') +
                         '</div>' +
                         issuesHtml +
                     '</div>' +
@@ -1110,6 +1217,10 @@ jQuery(document).ready(function ($) {
         }
 
         function escapeHtml(text) {
+            if (text === null || text === undefined) {
+                return '';
+            }
+            text = String(text);
             var map = {
                 '&': '&amp;',
                 '<': '&lt;',

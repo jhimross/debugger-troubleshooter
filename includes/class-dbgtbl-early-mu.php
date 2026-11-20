@@ -37,7 +37,7 @@ class DBGTBL_Early_MU
 	 */
 	public static function is_needed()
 	{
-		return 'enabled' === get_option(Debug_Troubleshooter::DEBUG_MODE_OPTION, 'disabled') || DBGTBL_Profiler::is_globally_active();
+		return DBGTBL_Live_Debug::is_enabled() || DBGTBL_Profiler::is_globally_active();
 	}
 
 	/**
